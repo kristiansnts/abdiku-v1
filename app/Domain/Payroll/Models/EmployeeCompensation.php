@@ -7,10 +7,18 @@ namespace App\Domain\Payroll\Models;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EmployeeCompensation extends Model
 {
+    use HasFactory;
+    
+    protected static function newFactory()
+    {
+        return \Database\Factories\EmployeeCompensationFactory::new();
+    }
+    
     protected $table = 'employee_compensations';
 
     protected $fillable = [

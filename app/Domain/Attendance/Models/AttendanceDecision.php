@@ -9,11 +9,19 @@ use App\Domain\Payroll\Enums\DeductionType;
 use App\Domain\Payroll\Models\PayrollPeriod;
 use App\Models\Employee;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class AttendanceDecision extends Model
 {
+    use HasFactory;
+    
+    protected static function newFactory()
+    {
+        return \Database\Factories\AttendanceDecisionFactory::new();
+    }
+    
     public $timestamps = false;
 
     protected $fillable = [

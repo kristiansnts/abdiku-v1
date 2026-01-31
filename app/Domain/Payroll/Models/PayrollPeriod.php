@@ -9,19 +9,25 @@ use App\Domain\Payroll\Enums\PayrollState;
 use App\Models\Company;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PayrollPeriod extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory()
+    {
+        return \Database\Factories\PayrollPeriodFactory::new();
+    }
     protected $fillable = [
         'company_id',
         'period_start',
         'period_end',
         'state',
         'rule_version',
-        'reviewed_by',
         'reviewed_at',
         'finalized_by',
         'finalized_at',

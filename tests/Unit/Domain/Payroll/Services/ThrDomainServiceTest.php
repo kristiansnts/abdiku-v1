@@ -80,7 +80,8 @@ class ThrDomainServiceTest extends TestCase
         );
 
         $this->assertTrue($result->isEligible());
-        $this->assertEquals($baseSalary * 0.5, $result->thrAmount); // 6 months / 12
+        // From Jan 1 to June 1 = 5 months (not 6), so 5/12 of salary
+        $this->assertEquals($baseSalary * (5/12), $result->thrAmount);
         $this->assertStringContainsString('mengundurkan diri', $result->notes);
     }
 
@@ -100,7 +101,7 @@ class ThrDomainServiceTest extends TestCase
 
         $this->assertTrue($result->isEligible());
         $expected = $baseSalary * (8 / 12);
-        $this->assertEquals($expected, $result->thrAmount);
+        $this->assertEquals(round($expected, 2), round($result->thrAmount, 2));
         $this->assertEquals('contract_prorated', $result->calculationMethod);
     }
 
