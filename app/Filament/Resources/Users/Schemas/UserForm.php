@@ -1,0 +1,45 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Filament\Resources\Users\Schemas;
+
+use App\Filament\Resources\Users\Pages\CreateUser;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
+
+final class UserForm
+{
+    public static function configure(Form $form): Form
+    {
+        return $form
+            ->schema([
+                TextInput::make('name')
+                    ->label('Nama')
+                    ->maxLength(255)
+                    ->required(),
+                TextInput::make('email')
+                    ->maxLength(255)
+                    ->unique()
+                    ->email()
+                    ->required(),
+                TextInput::make('password')
+                    ->label('Kata Sandi')
+                    ->password()
+                    ->required(fn($livewire): bool => $livewire instanceof CreateUser)
+                    ->revealable(filament()->arePasswordsRevealable())
+                    ->rule(Password::default())
+                    ->autocomplete('new-password')
+                    ->dehydrated(fn($state): bool => filled($state))
+                    ->dehydrateStateUsing(fn($state): string => Hash::make($state)),
+                Select::make('role')
+                    ->searchable()
+                    ->label('Role')
+                    ->relationship('roles', 'name')
+                    ->required(),
+            ]);
+    }
+}
