@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Payroll\Schemas;
 
+use App\Application\Payroll\DTOs\ThrCalculationRequest;
+use App\Application\Payroll\Services\ThrCalculationApplicationService;
+use App\Domain\Payroll\Contracts\EmployeeRepositoryInterface;
+use App\Domain\Payroll\Contracts\PayrollPeriodRepositoryInterface;
 use App\Domain\Payroll\Enums\PayrollAdditionCode;
-use App\Domain\Payroll\Models\PayrollPeriod;
-use App\Domain\Payroll\Services\CalculateThrService;
-use App\Models\Employee;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -19,7 +20,6 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
-use Illuminate\Database\Eloquent\Builder;
 
 final class PayrollAdditionForm
 {
@@ -31,26 +31,21 @@ final class PayrollAdditionForm
                     ->schema([
                         Select::make('employee_id')
                             ->label('Karyawan')
-                            ->relationship(
-                                'employee',
-                                'name',
-                                modifyQueryUsing: fn(Builder $query) => $query->where('company_id', auth()->user()?->company_id)
-                            )
+                            ->options(function (EmployeeRepositoryInterface $employeeRepository) {
+                                return $employeeRepository->getActiveEmployeesByCompany(auth()->user()?->company_id ?? 0)
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            })
                             ->searchable()
-                            ->preload()
                             ->required()
                             ->live(),
 
                         Select::make('payroll_period_id')
                             ->label('Periode Gaji')
-                            ->relationship(
-                                'period',
-                                'id',
-                                modifyQueryUsing: fn(Builder $query) => $query->where('company_id', auth()->user()?->company_id)
-                            )
-                            ->getOptionLabelFromRecordUsing(fn(PayrollPeriod $record) => $record->period_start->format('M Y') . ' - ' . $record->period_end->format('M Y'))
+                            ->options(function (PayrollPeriodRepositoryInterface $periodRepository) {
+                                return $periodRepository->getFormattedOptionsForCompany(auth()->user()?->company_id ?? 0);
+                            })
                             ->searchable()
-                            ->preload()
                             ->required()
                             ->live(),
 
@@ -88,11 +83,12 @@ final class PayrollAdditionForm
                                 ->label('Hitung THR Otomatis')
                                 ->icon('heroicon-o-calculator')
                                 ->color('success')
-                                ->action(function (Set $set, Get $get, CalculateThrService $thrService) {
+                                ->action(function (Set $set, Get $get, ThrCalculationApplicationService $thrService) {
                                     $employeeId = $get('employee_id');
                                     $periodId = $get('payroll_period_id');
                                     $employeeType = $get('employee_type') ?? 'permanent';
                                     $workingDaysInYear = (int) ($get('working_days_in_year') ?? 260);
+                                    $companyId = auth()->user()?->company_id ?? 0;
 
                                     if (!$employeeId || !$periodId) {
                                         Notification::make()
@@ -104,26 +100,32 @@ final class PayrollAdditionForm
                                     }
 
                                     try {
-                                        $employee = Employee::find($employeeId);
-                                        $period = PayrollPeriod::find($periodId);
-                                        
-                                        if (!$employee || !$period) {
-                                            throw new \Exception('Karyawan atau periode tidak ditemukan');
+                                        $request = ThrCalculationRequest::fromArray([
+                                            'employee_id' => $employeeId,
+                                            'period_id' => $periodId,
+                                            'company_id' => $companyId,
+                                            'employee_type' => $employeeType,
+                                            'working_days_in_year' => $workingDaysInYear,
+                                        ]);
+
+                                        $preview = $thrService->getCalculationPreview($request);
+
+                                        if (!$preview['success']) {
+                                            throw new \Exception($preview['error']);
                                         }
 
-                                        $result = $thrService->calculate(
-                                            $employee,
-                                            $period->period_end,
-                                            $employeeType,
-                                            $workingDaysInYear
-                                        );
+                                        $result = $preview['result'];
+                                        
+                                        if (!$result->isEligible()) {
+                                            throw new \Exception($result->notes);
+                                        }
 
-                                        $set('amount', $result['thr_amount']);
-                                        $set('description', $result['calculation_notes']);
+                                        $set('amount', $result->thrAmount);
+                                        $set('description', $result->notes);
 
                                         Notification::make()
                                             ->title('Berhasil')
-                                            ->body("THR berhasil dihitung: Rp " . number_format($result['thr_amount'], 0, ',', '.'))
+                                            ->body("THR berhasil dihitung: " . $result->getFormattedAmount())
                                             ->success()
                                             ->send();
 
