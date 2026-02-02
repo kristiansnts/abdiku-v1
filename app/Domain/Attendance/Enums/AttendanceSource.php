@@ -12,6 +12,7 @@ enum AttendanceSource: string implements HasLabel, HasColor
     case MACHINE = 'MACHINE';
     case REQUEST = 'REQUEST';
     case IMPORT = 'IMPORT';
+    case MOBILE = 'MOBILE';
 
     public function getLabel(): string
     {
@@ -19,6 +20,7 @@ enum AttendanceSource: string implements HasLabel, HasColor
             self::MACHINE => 'Mesin',
             self::REQUEST => 'Permintaan',
             self::IMPORT => 'Impor',
+            self::MOBILE => 'Aplikasi Mobile',
         };
     }
 
@@ -28,6 +30,7 @@ enum AttendanceSource: string implements HasLabel, HasColor
             self::MACHINE => 'success',
             self::REQUEST => 'warning',
             self::IMPORT => 'info',
+            self::MOBILE => 'primary',
         };
     }
 }
