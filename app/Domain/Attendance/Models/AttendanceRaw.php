@@ -9,13 +9,22 @@ use App\Domain\Attendance\Enums\AttendanceStatus;
 use App\Models\Company;
 use App\Models\CompanyLocation;
 use App\Models\Employee;
+use Database\Factories\AttendanceRawFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AttendanceRaw extends Model
 {
+    use HasFactory;
+    
     protected $table = 'attendance_raw';
+
+    protected static function newFactory()
+    {
+        return AttendanceRawFactory::new();
+    }
 
     protected $fillable = [
         'company_id',

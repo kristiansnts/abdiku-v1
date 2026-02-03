@@ -834,7 +834,93 @@ Get list of company locations for geofence validation.
 
 ---
 
-## 5. Error Codes Reference
+## 5. Employee Endpoints
+
+### 5.1 Get Employee Detail
+
+Get authenticated employee's profile information.
+
+**Endpoint**: `GET /employee/detail`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Success Response** (200):
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "John Doe",
+    "join_date": "2024-01-15",
+    "resign_date": null,
+    "status": "ACTIVE",
+    "company": {
+      "id": 1,
+      "name": "PT Example Company"
+    }
+  }
+}
+```
+
+**Employee Status Values**:
+| Value | Description |
+|-------|-------------|
+| ACTIVE | Currently employed |
+| INACTIVE | Temporarily inactive |
+| RESIGNED | No longer employed |
+
+---
+
+### 5.2 Get Employee Salary
+
+Get authenticated employee's current salary/compensation details.
+
+**Endpoint**: `GET /employee/salary`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Success Response** (200):
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "base_salary": 10000000.00,
+    "allowances": {
+      "transport": 500000,
+      "meal": 750000,
+      "communication": 200000
+    },
+    "total_allowances": 1450000.00,
+    "total_compensation": 11450000.00,
+    "effective_from": "2024-01-01",
+    "effective_to": null
+  }
+}
+```
+
+**Response when no salary data**:
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "Data gaji tidak ditemukan."
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | integer | Compensation record ID |
+| base_salary | number | Base monthly salary |
+| allowances | object | Key-value pairs of allowance types and amounts |
+| total_allowances | number | Sum of all allowances |
+| total_compensation | number | base_salary + total_allowances |
+| effective_from | date | Start date of this compensation |
+| effective_to | date | End date (null if currently active) |
+
+---
+
+## 6. Error Codes Reference
 
 ### Authentication Errors
 | Code | Status | Description |
@@ -872,7 +958,7 @@ Get list of company locations for geofence validation.
 
 ---
 
-## 6. Status Values
+## 7. Status Values
 
 ### Attendance Status
 | Value | Label | Description |
@@ -899,7 +985,7 @@ Get list of company locations for geofence validation.
 
 ---
 
-## 7. Implementation Notes
+## 8. Implementation Notes
 
 ### Device ID
 Generate a unique device identifier that persists across app reinstalls:
@@ -935,7 +1021,7 @@ Generate a unique device identifier that persists across app reinstalls:
 
 ---
 
-## 8. Sample Flow
+## 9. Sample Flow
 
 ### Login Flow
 ```
@@ -974,7 +1060,7 @@ Generate a unique device identifier that persists across app reinstalls:
 
 ---
 
-## 9. Testing
+## 10. Testing
 
 ### Test Credentials
 Contact your system administrator for test account credentials.
@@ -1025,7 +1111,11 @@ curl -X POST https://your-domain.com/api/v1/attendance/clock-in \
 
 ---
 
-## 10. Changelog
+## 11. Changelog
+
+### Version 1.1.0 (2026-02-03)
+- Added Employee Detail endpoint (`GET /employee/detail`)
+- Added Employee Salary endpoint (`GET /employee/salary`)
 
 ### Version 1.0.0 (2026-02-02)
 - Initial release

@@ -9,11 +9,20 @@ use App\Domain\Attendance\Enums\AttendanceStatus;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
+use Database\Factories\AttendanceRequestFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AttendanceRequest extends Model
 {
+    use HasFactory;
+    
+    protected static function newFactory()
+    {
+        return AttendanceRequestFactory::new();
+    }
+    
     protected $fillable = [
         'employee_id',
         'company_id',

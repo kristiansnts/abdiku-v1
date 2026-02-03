@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AttendanceEvidence extends Model
 {
+    protected $table = 'attendance_evidences';
+    
     protected $fillable = [
         'attendance_raw_id',
         'type',
