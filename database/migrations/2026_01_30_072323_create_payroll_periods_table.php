@@ -14,6 +14,8 @@ return new class () extends Migration {
             $table->foreignId('company_id')->constrained()->onDelete('cascade');
             $table->date('period_start');
             $table->date('period_end');
+            $table->year('year');
+            $table->unsignedTinyInteger('month');
             $table->enum('state', ['DRAFT', 'REVIEW', 'FINALIZED', 'LOCKED']);
             $table->string('rule_version');
             $table->datetime('reviewed_at')->nullable();

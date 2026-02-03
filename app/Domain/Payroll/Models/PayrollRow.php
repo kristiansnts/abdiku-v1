@@ -5,13 +5,21 @@ declare(strict_types=1);
 namespace App\Domain\Payroll\Models;
 
 use App\Models\Employee;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PayrollRow extends Model
 {
+    use HasFactory;
+
     public $timestamps = false;
+
+    protected static function newFactory()
+    {
+        return \Database\Factories\PayrollRowFactory::new();
+    }
 
     protected $fillable = [
         'payroll_batch_id',

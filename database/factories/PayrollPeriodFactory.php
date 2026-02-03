@@ -21,6 +21,8 @@ class PayrollPeriodFactory extends Factory
             'company_id' => Company::factory(),
             'period_start' => $start,
             'period_end' => $end,
+            'year' => (int) $start->format('Y'),
+            'month' => (int) $start->format('n'),
             'state' => PayrollState::DRAFT,
             'rule_version' => '1.0',
             'reviewed_at' => null,
@@ -50,6 +52,8 @@ class PayrollPeriodFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'period_start' => now()->startOfMonth(),
             'period_end' => now()->endOfMonth(),
+            'year' => now()->year,
+            'month' => now()->month,
         ]);
     }
 }

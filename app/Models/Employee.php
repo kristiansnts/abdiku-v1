@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Domain\Payroll\Models\EmployeeCompensation;
+use App\Domain\Payroll\Models\PayrollRow;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,5 +45,10 @@ class Employee extends Model
     public function compensations(): HasMany
     {
         return $this->hasMany(EmployeeCompensation::class);
+    }
+
+    public function payrollRows(): HasMany
+    {
+        return $this->hasMany(PayrollRow::class);
     }
 }

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Attendance\ClockOutController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Company\CompanyLocationController;
 use App\Http\Controllers\Api\V1\Employee\EmployeeDetailController;
+use App\Http\Controllers\Api\V1\Employee\EmployeePayslipController;
 use App\Http\Controllers\Api\V1\Employee\EmployeeSalaryController;
 use Illuminate\Support\Facades\Route;
 
@@ -61,6 +62,7 @@ Route::prefix('v1')->group(function () {
             Route::prefix('employee')->group(function () {
                 Route::get('detail', EmployeeDetailController::class);
                 Route::get('salary', EmployeeSalaryController::class);
+                Route::get('payslips', EmployeePayslipController::class);
             });
         });
     });

@@ -1,0 +1,56 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Api\V1\Employee;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\V1\EmployeePayslipResource;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class EmployeePayslipController extends Controller
+{
+    public function __invoke(Request $request): JsonResponse
+    {
+        $employee = $request->user()->employee;
+
+        // Get finalized payroll rows for the employee
+        $payslips = $employee->payrollRows()
+            ->with([
+                'payrollBatch.payrollPeriod',
+                'deductions',
+                'additions'
+            ])
+            ->whereHas('payrollBatch', function ($query) {
+                $query->whereNotNull('finalized_at');
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        if ($payslips->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'meta' => [
+                    'current_page' => 1,
+                    'total' => 0,
+                    'per_page' => 10,
+                    'last_page' => 1,
+                ],
+                'message' => 'Slip gaji tidak ditemukan.',
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => EmployeePayslipResource::collection($payslips->items()),
+            'meta' => [
+                'current_page' => $payslips->currentPage(),
+                'total' => $payslips->total(),
+                'per_page' => $payslips->perPage(),
+                'last_page' => $payslips->lastPage(),
+            ],
+        ]);
+    }
+}

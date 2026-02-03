@@ -27,6 +27,8 @@ class PayrollPeriod extends Model
         'period_start',
         'period_end',
         'state',
+        'year',
+        'month',
         'rule_version',
         'reviewed_at',
         'finalized_by',
@@ -37,6 +39,8 @@ class PayrollPeriod extends Model
         'period_start' => 'date',
         'period_end' => 'date',
         'state' => PayrollState::class,
+        'year' => 'integer',
+        'month' => 'integer',
         'reviewed_at' => 'datetime',
         'finalized_at' => 'datetime',
     ];

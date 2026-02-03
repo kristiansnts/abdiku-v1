@@ -1020,6 +1020,117 @@ class MobileAttendanceApiTest extends TestCase
             ]);
     }
 
+    /** @test */
+    public function it_can_get_employee_payslips()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Create payroll data
+        $payrollPeriod = \App\Domain\Payroll\Models\PayrollPeriod::factory()->create([
+            'company_id' => $this->company->id,
+            'period_start' => now()->startOfMonth(),
+            'period_end' => now()->endOfMonth(),
+            'year' => now()->year,
+            'month' => now()->month,
+        ]);
+
+        $payrollBatch = \App\Domain\Payroll\Models\PayrollBatch::factory()->finalized()->create([
+            'company_id' => $this->company->id,
+            'payroll_period_id' => $payrollPeriod->id,
+        ]);
+
+        $payrollRow = \App\Domain\Payroll\Models\PayrollRow::factory()->create([
+            'payroll_batch_id' => $payrollBatch->id,
+            'employee_id' => $this->employee->id,
+            'gross_amount' => 10000000,
+            'deduction_amount' => 2000000,
+            'net_amount' => 8000000,
+        ]);
+
+        $response = $this->getJson('/api/v1/employee/payslips');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    '*' => [
+                        'id',
+                        'period' => [
+                            'year',
+                            'month',
+                            'period_start',
+                            'period_end'
+                        ],
+                        'gross_amount',
+                        'deduction_amount',
+                        'net_amount',
+                        'attendance_count',
+                        'deductions',
+                        'additions',
+                        'finalized_at'
+                    ]
+                ],
+                'meta' => [
+                    'current_page',
+                    'total',
+                    'per_page',
+                    'last_page'
+                ]
+            ]);
+
+        $this->assertTrue($response->json('success'));
+        $this->assertCount(1, $response->json('data'));
+        $this->assertEquals(10000000, $response->json('data.0.gross_amount'));
+        $this->assertEquals(8000000, $response->json('data.0.net_amount'));
+    }
+
+    /** @test */
+    public function it_returns_empty_array_when_employee_has_no_payslips()
+    {
+        Sanctum::actingAs($this->user);
+
+        $response = $this->getJson('/api/v1/employee/payslips');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [],
+                'message' => 'Slip gaji tidak ditemukan.'
+            ]);
+    }
+
+    /** @test */
+    public function it_paginates_payslips_correctly()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Create multiple payroll periods and batches
+        for ($i = 0; $i < 15; $i++) {
+            $payrollPeriod = \App\Domain\Payroll\Models\PayrollPeriod::factory()->create([
+                'company_id' => $this->company->id,
+                'year' => now()->year,
+                'month' => now()->subMonths($i)->month,
+            ]);
+
+            $payrollBatch = \App\Domain\Payroll\Models\PayrollBatch::factory()->finalized()->create([
+                'company_id' => $this->company->id,
+                'payroll_period_id' => $payrollPeriod->id,
+            ]);
+
+            \App\Domain\Payroll\Models\PayrollRow::factory()->create([
+                'payroll_batch_id' => $payrollBatch->id,
+                'employee_id' => $this->employee->id,
+            ]);
+        }
+
+        $response = $this->getJson('/api/v1/employee/payslips');
+
+        $response->assertStatus(200);
+        $this->assertCount(10, $response->json('data')); // Should be paginated to 10 items
+        $this->assertEquals(15, $response->json('meta.total'));
+        $this->assertEquals(2, $response->json('meta.last_page'));
+    }
+
     // =============================================================================
     // Authentication Middleware Tests
     // =============================================================================
@@ -1039,6 +1150,7 @@ class MobileAttendanceApiTest extends TestCase
             ['GET', '/api/v1/company/locations'],
             ['GET', '/api/v1/employee/detail'],
             ['GET', '/api/v1/employee/salary'],
+            ['GET', '/api/v1/employee/payslips'],
         ];
 
         foreach ($endpoints as [$method, $endpoint]) {
@@ -1062,6 +1174,7 @@ class MobileAttendanceApiTest extends TestCase
             ['GET', '/api/v1/company/locations'],
             ['GET', '/api/v1/employee/detail'],
             ['GET', '/api/v1/employee/salary'],
+            ['GET', '/api/v1/employee/payslips'],
         ];
 
         foreach ($endpoints as [$method, $endpoint]) {
