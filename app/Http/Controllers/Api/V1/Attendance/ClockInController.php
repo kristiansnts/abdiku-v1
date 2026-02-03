@@ -10,29 +10,56 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Attendance\ClockInRequest;
 use App\Http\Resources\Api\V1\AttendanceRawResource;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class ClockInController extends Controller
 {
     public function __construct(
         private readonly ClockInService $clockInService,
-    ) {}
+    ) {
+    }
 
     public function __invoke(ClockInRequest $request): JsonResponse
     {
-        $employee = $request->user()->employee;
+        try {
+            $employee = $request->user()->employee;
 
-        $data = ClockInData::fromArray($request->validated());
+            Log::info('Clock-in request received', [
+                'employee_id' => $employee->id,
+                'user_id' => $request->user()->id,
+            ]);
 
-        $attendance = $this->clockInService->execute($employee, $data);
+            $data = ClockInData::fromArray($request->validated());
 
-        $message = $attendance->isPending()
-            ? 'Clock in berhasil. Menunggu verifikasi karena lokasi di luar area.'
-            : 'Clock in berhasil.';
+            $attendance = $this->clockInService->execute($employee, $data);
 
-        return response()->json([
-            'success' => true,
-            'data' => new AttendanceRawResource($attendance),
-            'message' => $message,
-        ], 201);
+            $message = $attendance->isPending()
+                ? 'Clock in berhasil. Menunggu verifikasi karena lokasi di luar area.'
+                : 'Clock in berhasil.';
+
+            Log::info('Clock-in successful', [
+                'employee_id' => $employee->id,
+                'attendance_id' => $attendance->id,
+                'status' => $attendance->isPending() ? 'pending' : 'approved',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => new AttendanceRawResource($attendance),
+                'message' => $message,
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Clock-in failed', [
+                'employee_id' => $request->user()->employee->id ?? null,
+                'user_id' => $request->user()->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Clock in gagal. Silakan coba lagi.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

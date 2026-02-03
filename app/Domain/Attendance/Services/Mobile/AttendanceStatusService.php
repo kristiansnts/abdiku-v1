@@ -17,6 +17,7 @@ class AttendanceStatusService
         $todayAttendance = AttendanceRaw::query()
             ->where('employee_id', $employee->id)
             ->where('date', $today)
+            ->with('employee')
             ->latest()
             ->first();
 

@@ -76,7 +76,7 @@ class ClockInService
                 $this->evidenceService->storePhoto($attendance, $data->photo);
             }
 
-            return $attendance->load('evidences', 'companyLocation');
+            return $attendance->load('evidences', 'companyLocation', 'employee');
         });
     }
 }

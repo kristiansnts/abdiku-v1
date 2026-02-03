@@ -19,6 +19,8 @@ readonly class AttendanceStatusResult
 
     public function toArray(): array
     {
+        $employeeTimezone = $this->todayAttendance?->employee->timezone ?? 'Asia/Jakarta';
+
         return [
             'can_clock_in' => $this->canClockIn,
             'can_clock_out' => $this->canClockOut,
@@ -27,8 +29,8 @@ readonly class AttendanceStatusResult
             'today_attendance' => $this->todayAttendance ? [
                 'id' => $this->todayAttendance->id,
                 'date' => $this->todayAttendance->date->format('Y-m-d'),
-                'clock_in' => $this->todayAttendance->clock_in?->format('H:i:s'),
-                'clock_out' => $this->todayAttendance->clock_out?->format('H:i:s'),
+                'clock_in' => $this->todayAttendance->clock_in?->setTimezone($employeeTimezone)->format('H:i:s'),
+                'clock_out' => $this->todayAttendance->clock_out?->setTimezone($employeeTimezone)->format('H:i:s'),
                 'status' => $this->todayAttendance->status->value,
             ] : null,
             'message' => $this->message,

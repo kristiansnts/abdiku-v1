@@ -11,11 +11,13 @@ class AttendanceRawResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $employeeTimezone = $this->employee->timezone ?? 'Asia/Jakarta';
+
         return [
             'id' => $this->id,
             'date' => $this->date->format('Y-m-d'),
-            'clock_in' => $this->clock_in?->format('Y-m-d H:i:s'),
-            'clock_out' => $this->clock_out?->format('Y-m-d H:i:s'),
+            'clock_in' => $this->clock_in?->setTimezone($employeeTimezone)->format('Y-m-d H:i:s'),
+            'clock_out' => $this->clock_out?->setTimezone($employeeTimezone)->format('Y-m-d H:i:s'),
             'source' => $this->source->value,
             'status' => $this->status->value,
             'status_label' => $this->status->getLabel(),

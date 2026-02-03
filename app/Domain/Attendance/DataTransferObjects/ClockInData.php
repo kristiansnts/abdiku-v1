@@ -24,7 +24,7 @@ readonly class ClockInData
     public static function fromArray(array $data): self
     {
         return new self(
-            clockInAt: Carbon::parse($data['clock_in_at']),
+            clockInAt: Carbon::parse($data['clock_in_at'], 'UTC'),
             latitude: (float) $data['evidence']['geolocation']['lat'],
             longitude: (float) $data['evidence']['geolocation']['lng'],
             accuracy: isset($data['evidence']['geolocation']['accuracy'])
