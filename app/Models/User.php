@@ -53,6 +53,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if the user has an admin role.
+     *
+     * @return bool
+     */
+    public function isAdmin(): bool
+    {
+        return $this->hasRole(['admin', 'super_admin']);
+    }
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>
