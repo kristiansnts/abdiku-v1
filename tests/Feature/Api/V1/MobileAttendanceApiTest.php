@@ -9,6 +9,10 @@ use App\Models\CompanyLocation;
 use App\Models\UserDevice;
 use App\Domain\Attendance\Models\AttendanceRaw;
 use App\Domain\Attendance\Models\AttendanceRequest;
+use App\Domain\Attendance\Models\ShiftPolicy;
+use App\Domain\Attendance\Models\WorkPattern;
+use App\Domain\Attendance\Models\EmployeeWorkAssignment;
+use App\Domain\Attendance\Enums\DayOfWeek;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\UploadedFile;
@@ -1215,5 +1219,295 @@ class MobileAttendanceApiTest extends TestCase
         }
 
         $response->assertStatus(429); // Too Many Requests
+    }
+
+    // =============================================================================
+    // Shift Policy & Work Pattern Tests
+    // =============================================================================
+
+    /** @test */
+    public function it_can_create_shift_policy()
+    {
+        $policy = ShiftPolicy::factory()->for($this->company)->standardShift()->create();
+
+        $this->assertDatabaseHas('shift_policies', [
+            'id' => $policy->id,
+            'company_id' => $this->company->id,
+            'name' => 'Shift Kantor',
+            'late_after_minutes' => 15,
+            'minimum_work_hours' => 8,
+        ]);
+
+        $this->assertEquals($this->company->id, $policy->company->id);
+    }
+
+    /** @test */
+    public function it_can_create_work_pattern()
+    {
+        $pattern = WorkPattern::factory()->for($this->company)->fiveDay()->create();
+
+        $this->assertDatabaseHas('work_patterns', [
+            'id' => $pattern->id,
+            'company_id' => $this->company->id,
+            'name' => '5 Hari Kerja',
+        ]);
+
+        $this->assertEquals([1, 2, 3, 4, 5], $pattern->working_days);
+        $this->assertEquals(5, $pattern->working_days_count);
+    }
+
+    /** @test */
+    public function it_can_create_six_day_work_pattern()
+    {
+        $pattern = WorkPattern::factory()->for($this->company)->sixDay()->create();
+
+        $this->assertEquals([1, 2, 3, 4, 5, 6], $pattern->working_days);
+        $this->assertEquals('6 Hari Kerja', $pattern->name);
+    }
+
+    /** @test */
+    public function it_can_create_all_days_work_pattern()
+    {
+        $pattern = WorkPattern::factory()->for($this->company)->allDays()->create();
+
+        $this->assertEquals([1, 2, 3, 4, 5, 6, 7], $pattern->working_days);
+        $this->assertEquals('Semua Hari', $pattern->name);
+    }
+
+    /** @test */
+    public function it_can_create_employee_work_assignment()
+    {
+        $policy = ShiftPolicy::factory()->for($this->company)->create();
+        $pattern = WorkPattern::factory()->for($this->company)->create();
+
+        $assignment = EmployeeWorkAssignment::factory()
+            ->for($this->employee)
+            ->for($policy, 'shiftPolicy')
+            ->for($pattern, 'workPattern')
+            ->active()
+            ->create();
+
+        $this->assertDatabaseHas('employee_work_assignments', [
+            'id' => $assignment->id,
+            'employee_id' => $this->employee->id,
+            'shift_policy_id' => $policy->id,
+            'work_pattern_id' => $pattern->id,
+        ]);
+
+        $this->assertNull($assignment->effective_to);
+        $this->assertTrue($assignment->isActive());
+    }
+
+    /** @test */
+    public function it_can_determine_if_date_is_working_day()
+    {
+        $pattern = WorkPattern::factory()->for($this->company)->fiveDay()->create();
+
+        // Monday (1) should be a working day
+        $monday = now()->startOfWeek(); // Monday
+        $this->assertTrue($pattern->isWorkingDay($monday));
+
+        // Sunday (7) should not be a working day for 5-day pattern
+        $sunday = now()->endOfWeek(); // Sunday
+        $this->assertFalse($pattern->isWorkingDay($sunday));
+    }
+
+    /** @test */
+    public function it_can_determine_if_clock_in_is_late()
+    {
+        $policy = ShiftPolicy::factory()->for($this->company)->state([
+            'start_time' => '09:00:00',
+            'late_after_minutes' => 15,
+        ])->create();
+
+        // Clock in at 9:10 - should NOT be late (within 15 min tolerance)
+        $clockIn910 = now()->setTime(9, 10);
+        $this->assertFalse($policy->isLate($clockIn910));
+
+        // Clock in at 9:20 - should be late (exceeds 15 min tolerance)
+        $clockIn920 = now()->setTime(9, 20);
+        $this->assertTrue($policy->isLate($clockIn920));
+
+        // Clock in at 8:55 - should NOT be late (early)
+        $clockIn855 = now()->setTime(8, 55);
+        $this->assertFalse($policy->isLate($clockIn855));
+    }
+
+    /** @test */
+    public function it_can_calculate_late_minutes()
+    {
+        $policy = ShiftPolicy::factory()->for($this->company)->state([
+            'start_time' => '09:00:00',
+            'late_after_minutes' => 15,
+        ])->create();
+
+        // Clock in at 9:30 - should be 30 minutes late
+        $clockIn930 = now()->setTime(9, 30);
+        $this->assertEquals(30, $policy->getLateMinutes($clockIn930));
+
+        // Clock in at 9:10 - should be 0 minutes late (within tolerance)
+        $clockIn910 = now()->setTime(9, 10);
+        $this->assertEquals(0, $policy->getLateMinutes($clockIn910));
+    }
+
+    /** @test */
+    public function it_can_get_employee_active_work_assignment()
+    {
+        $policy = ShiftPolicy::factory()->for($this->company)->create();
+        $pattern = WorkPattern::factory()->for($this->company)->create();
+
+        EmployeeWorkAssignment::factory()
+            ->for($this->employee)
+            ->for($policy, 'shiftPolicy')
+            ->for($pattern, 'workPattern')
+            ->active()
+            ->create();
+
+        $activeAssignment = $this->employee->activeWorkAssignment;
+
+        $this->assertNotNull($activeAssignment);
+        $this->assertEquals($policy->id, $activeAssignment->shiftPolicy->id);
+        $this->assertEquals($pattern->id, $activeAssignment->workPattern->id);
+    }
+
+    /** @test */
+    public function it_can_get_company_shift_policies()
+    {
+        ShiftPolicy::factory()->for($this->company)->count(3)->create();
+
+        $this->assertEquals(3, $this->company->shiftPolicies()->count());
+    }
+
+    /** @test */
+    public function it_can_get_company_work_patterns()
+    {
+        WorkPattern::factory()->for($this->company)->count(2)->create();
+
+        $this->assertEquals(2, $this->company->workPatterns()->count());
+    }
+
+    /** @test */
+    public function it_can_count_working_days_in_range()
+    {
+        $pattern = WorkPattern::factory()->for($this->company)->fiveDay()->create();
+
+        // Count working days in a week (Mon-Sun)
+        $monday = now()->startOfWeek();
+        $sunday = now()->endOfWeek();
+
+        $workingDays = $pattern->countWorkingDaysInRange($monday, $sunday);
+        $this->assertEquals(5, $workingDays);
+    }
+
+    /** @test */
+    public function it_can_get_work_assignment_active_on_specific_date()
+    {
+        $policy = ShiftPolicy::factory()->for($this->company)->create();
+        $pattern = WorkPattern::factory()->for($this->company)->create();
+
+        EmployeeWorkAssignment::factory()
+            ->for($this->employee)
+            ->for($policy, 'shiftPolicy')
+            ->for($pattern, 'workPattern')
+            ->state([
+                'effective_from' => now()->subMonths(3),
+                'effective_to' => null,
+            ])
+            ->create();
+
+        $assignment = $this->employee->getWorkAssignmentOn(now());
+
+        $this->assertNotNull($assignment);
+        $this->assertEquals($policy->id, $assignment->shiftPolicy->id);
+    }
+
+    /** @test */
+    public function it_returns_null_for_work_assignment_before_effective_date()
+    {
+        $policy = ShiftPolicy::factory()->for($this->company)->create();
+        $pattern = WorkPattern::factory()->for($this->company)->create();
+
+        EmployeeWorkAssignment::factory()
+            ->for($this->employee)
+            ->for($policy, 'shiftPolicy')
+            ->for($pattern, 'workPattern')
+            ->state([
+                'effective_from' => now()->addMonth(),
+                'effective_to' => null,
+            ])
+            ->create();
+
+        $assignment = $this->employee->getWorkAssignmentOn(now());
+
+        $this->assertNull($assignment);
+    }
+
+    /** @test */
+    public function it_can_use_day_of_week_enum()
+    {
+        $this->assertEquals([1, 2, 3, 4, 5], DayOfWeek::fiveDayPattern());
+        $this->assertEquals([1, 2, 3, 4, 5, 6], DayOfWeek::sixDayPattern());
+        $this->assertEquals([1, 2, 3, 4, 5, 6, 7], DayOfWeek::allDaysPattern());
+
+        $monday = DayOfWeek::MONDAY;
+        $this->assertEquals('Senin', $monday->getLabel());
+        $this->assertEquals('Sen', $monday->getShortLabel());
+        $this->assertEquals('success', $monday->getColor());
+
+        $sunday = DayOfWeek::SUNDAY;
+        $this->assertEquals('Minggu', $sunday->getLabel());
+        $this->assertEquals('danger', $sunday->getColor());
+    }
+
+    /** @test */
+    public function it_can_create_different_shift_types()
+    {
+        $earlyShift = ShiftPolicy::factory()->for($this->company)->earlyShift()->create();
+        $this->assertEquals('06:00:00', $earlyShift->start_time->format('H:i:s'));
+        $this->assertEquals('14:00:00', $earlyShift->end_time->format('H:i:s'));
+
+        $lateShift = ShiftPolicy::factory()->for($this->company)->lateShift()->create();
+        $this->assertEquals('14:00:00', $lateShift->start_time->format('H:i:s'));
+        $this->assertEquals('22:00:00', $lateShift->end_time->format('H:i:s'));
+
+        $sevenHourShift = ShiftPolicy::factory()->for($this->company)->sevenHours()->create();
+        $this->assertEquals(7, $sevenHourShift->minimum_work_hours);
+    }
+
+    /** @test */
+    public function it_can_create_shift_with_different_lateness_policies()
+    {
+        $strictPolicy = ShiftPolicy::factory()->for($this->company)->strictLateness()->create();
+        $this->assertEquals(5, $strictPolicy->late_after_minutes);
+
+        $flexiblePolicy = ShiftPolicy::factory()->for($this->company)->flexibleLateness()->create();
+        $this->assertEquals(30, $flexiblePolicy->late_after_minutes);
+    }
+
+    /** @test */
+    public function it_can_scope_active_assignments_on_date()
+    {
+        $policy = ShiftPolicy::factory()->for($this->company)->create();
+        $pattern = WorkPattern::factory()->for($this->company)->create();
+
+        // Create an expired assignment
+        EmployeeWorkAssignment::factory()
+            ->for($this->employee)
+            ->for($policy, 'shiftPolicy')
+            ->for($pattern, 'workPattern')
+            ->expired()
+            ->create();
+
+        // Create an active assignment
+        EmployeeWorkAssignment::factory()
+            ->for($this->employee)
+            ->for($policy, 'shiftPolicy')
+            ->for($pattern, 'workPattern')
+            ->active()
+            ->create();
+
+        $activeAssignments = EmployeeWorkAssignment::activeOn(now())->get();
+
+        $this->assertEquals(1, $activeAssignments->count());
     }
 }

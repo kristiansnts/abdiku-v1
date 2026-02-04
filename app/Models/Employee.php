@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Domain\Attendance\Models\EmployeeWorkAssignment;
 use App\Domain\Payroll\Models\EmployeeCompensation;
 use App\Domain\Payroll\Models\PayrollRow;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Employee extends Model
 {
@@ -50,5 +52,28 @@ class Employee extends Model
     public function payrollRows(): HasMany
     {
         return $this->hasMany(PayrollRow::class);
+    }
+
+    public function workAssignments(): HasMany
+    {
+        return $this->hasMany(EmployeeWorkAssignment::class);
+    }
+
+    public function activeWorkAssignment(): HasOne
+    {
+        return $this->hasOne(EmployeeWorkAssignment::class)
+            ->whereNull('effective_to')
+            ->latest('effective_from');
+    }
+
+    /**
+     * Get the work assignment active on a specific date.
+     */
+    public function getWorkAssignmentOn(\DateTimeInterface $date): ?EmployeeWorkAssignment
+    {
+        return $this->workAssignments()
+            ->activeOn($date)
+            ->with(['shiftPolicy', 'workPattern'])
+            ->first();
     }
 }

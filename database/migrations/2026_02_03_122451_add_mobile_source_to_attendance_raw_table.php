@@ -9,6 +9,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Skip constraint modification for SQLite (used in tests)
+        // SQLite doesn't support ALTER TABLE for constraints
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Drop the existing check constraint
         DB::statement('ALTER TABLE attendance_raw DROP CONSTRAINT IF EXISTS attendance_raw_source_check');
 
@@ -18,6 +24,11 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Skip constraint modification for SQLite (used in tests)
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Drop the new check constraint
         DB::statement('ALTER TABLE attendance_raw DROP CONSTRAINT IF EXISTS attendance_raw_source_check');
 

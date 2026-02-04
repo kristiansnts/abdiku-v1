@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Domain\Attendance\Models\ShiftPolicy;
+use App\Domain\Attendance\Models\WorkPattern;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,5 +31,15 @@ class Company extends Model
     public function locations(): HasMany
     {
         return $this->hasMany(CompanyLocation::class);
+    }
+
+    public function shiftPolicies(): HasMany
+    {
+        return $this->hasMany(ShiftPolicy::class);
+    }
+
+    public function workPatterns(): HasMany
+    {
+        return $this->hasMany(WorkPattern::class);
     }
 }
