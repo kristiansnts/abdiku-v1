@@ -12,6 +12,7 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentView;
 use Filament\Widgets;
+use App\Filament\Widgets\StatsOverview;
 use App\Filament\Widgets\CompanyLocationMapWidget;
 use App\Filament\Widgets\DailyAttendanceWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -41,7 +42,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
+                StatsOverview::class,
                 CompanyLocationMapWidget::class,
                 DailyAttendanceWidget::class,
             ])

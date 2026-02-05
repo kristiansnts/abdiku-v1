@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Payroll\Services;
 
 use App\Domain\Attendance\Enums\AttendanceClassification;
+use App\Domain\Attendance\Enums\AttendanceStatus;
 use App\Domain\Attendance\Models\AttendanceDecision;
 use App\Domain\Attendance\Models\AttendanceRaw;
 use App\Domain\Leave\Models\LeaveRecord;
@@ -27,6 +28,7 @@ class PreparePayrollService
 
         DB::transaction(function () use ($period) {
             $this->generateDecisions($period);
+            $this->lockAttendanceRecords($period);
         });
     }
 
@@ -143,5 +145,13 @@ class PreparePayrollService
                 'value' => null,
             ],
         };
+    }
+
+    private function lockAttendanceRecords(PayrollPeriod $period): void
+    {
+        AttendanceRaw::where('company_id', $period->company_id)
+            ->whereBetween('date', [$period->period_start, $period->period_end])
+            ->whereIn('status', [AttendanceStatus::PENDING, AttendanceStatus::APPROVED])
+            ->update(['status' => AttendanceStatus::LOCKED]);
     }
 }
