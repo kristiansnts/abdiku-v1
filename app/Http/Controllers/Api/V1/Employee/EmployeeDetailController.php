@@ -15,9 +15,14 @@ class EmployeeDetailController extends Controller
     {
         $employee = $request->user()->employee;
 
+        $employee->load([
+            'company',
+            'activeWorkAssignment.shiftPolicy',
+        ]);
+
         return response()->json([
             'success' => true,
-            'data' => new EmployeeDetailResource($employee->load('company')),
+            'data' => new EmployeeDetailResource($employee),
         ]);
     }
 }

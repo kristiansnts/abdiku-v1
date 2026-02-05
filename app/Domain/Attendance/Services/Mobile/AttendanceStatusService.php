@@ -21,12 +21,17 @@ class AttendanceStatusService
             ->latest()
             ->first();
 
+        // Get current shift policy from active work assignment
+        $workAssignment = $employee->getWorkAssignmentOn(now());
+        $shiftPolicy = $workAssignment?->shiftPolicy;
+
         if (! $todayAttendance) {
             return new AttendanceStatusResult(
                 canClockIn: true,
                 canClockOut: false,
                 hasClockedIn: false,
                 hasClockedOut: false,
+                shiftPolicy: $shiftPolicy,
                 message: 'Belum melakukan clock in hari ini',
             );
         }
@@ -41,6 +46,7 @@ class AttendanceStatusService
                 hasClockedIn: true,
                 hasClockedOut: true,
                 todayAttendance: $todayAttendance,
+                shiftPolicy: $shiftPolicy,
                 message: 'Sudah melakukan clock in dan clock out hari ini',
             );
         }
@@ -52,6 +58,7 @@ class AttendanceStatusService
                 hasClockedIn: true,
                 hasClockedOut: false,
                 todayAttendance: $todayAttendance,
+                shiftPolicy: $shiftPolicy,
                 message: 'Sudah clock in, silakan clock out',
             );
         }
@@ -62,6 +69,7 @@ class AttendanceStatusService
             hasClockedIn: false,
             hasClockedOut: false,
             todayAttendance: $todayAttendance,
+            shiftPolicy: $shiftPolicy,
             message: 'Silakan melakukan clock in',
         );
     }

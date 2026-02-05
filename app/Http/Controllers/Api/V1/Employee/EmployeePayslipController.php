@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 
 class EmployeePayslipController extends Controller
 {
-    public function __invoke(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $employee = $request->user()->employee;
 
@@ -25,7 +25,7 @@ class EmployeePayslipController extends Controller
             ->whereHas('payrollBatch', function ($query) {
                 $query->whereNotNull('finalized_at');
             })
-            ->orderBy('created_at', 'desc')
+            ->orderBy('payroll_batch_id', 'desc')
             ->paginate(10);
 
         if ($payslips->isEmpty()) {
@@ -51,6 +51,37 @@ class EmployeePayslipController extends Controller
                 'per_page' => $payslips->perPage(),
                 'last_page' => $payslips->lastPage(),
             ],
+        ]);
+    }
+
+    public function show(Request $request, int $id): JsonResponse
+    {
+        $employee = $request->user()->employee;
+
+        $payslip = $employee->payrollRows()
+            ->with([
+                'payrollBatch.payrollPeriod',
+                'deductions',
+                'additions'
+            ])
+            ->whereHas('payrollBatch', function ($query) {
+                $query->whereNotNull('finalized_at');
+            })
+            ->find($id);
+
+        if (! $payslip) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'PAYSLIP_NOT_FOUND',
+                    'message' => 'Slip gaji tidak ditemukan.',
+                ],
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => new EmployeePayslipResource($payslip),
         ]);
     }
 }

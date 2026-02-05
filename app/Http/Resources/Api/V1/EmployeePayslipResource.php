@@ -25,16 +25,15 @@ class EmployeePayslipResource extends JsonResource
             'attendance_count' => $this->attendance_count,
             'deductions' => $this->deductions->map(function ($deduction) {
                 return [
-                    'type' => $deduction->type,
-                    'name' => $deduction->name,
+                    'code' => $deduction->deduction_code,
                     'employee_amount' => (float) $deduction->employee_amount,
                     'employer_amount' => (float) $deduction->employer_amount,
                 ];
             }),
             'additions' => $this->additions->map(function ($addition) {
                 return [
-                    'code' => $addition->code,
-                    'name' => $addition->name,
+                    'code' => $addition->addition_code,
+                    'description' => $addition->description,
                     'amount' => (float) $addition->amount,
                 ];
             }),

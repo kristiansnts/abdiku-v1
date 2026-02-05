@@ -21,6 +21,14 @@ class EmployeeDetailResource extends JsonResource
                 'id' => $this->company->id,
                 'name' => $this->company->name,
             ]),
+            'shift' => $this->whenLoaded('activeWorkAssignment', function () {
+                $assignment = $this->activeWorkAssignment;
+                if (! $assignment || ! $assignment->shiftPolicy) {
+                    return null;
+                }
+
+                return new ShiftPolicyResource($assignment->shiftPolicy);
+            }),
         ];
     }
 }

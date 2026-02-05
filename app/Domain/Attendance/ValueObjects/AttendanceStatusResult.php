@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Attendance\ValueObjects;
 
 use App\Domain\Attendance\Models\AttendanceRaw;
+use App\Domain\Attendance\Models\ShiftPolicy;
 
 readonly class AttendanceStatusResult
 {
@@ -14,6 +15,7 @@ readonly class AttendanceStatusResult
         public bool $hasClockedIn,
         public bool $hasClockedOut,
         public ?AttendanceRaw $todayAttendance = null,
+        public ?ShiftPolicy $shiftPolicy = null,
         public ?string $message = null,
     ) {}
 
@@ -32,6 +34,13 @@ readonly class AttendanceStatusResult
                 'clock_in' => $this->todayAttendance->clock_in?->setTimezone($employeeTimezone)->format('H:i:s'),
                 'clock_out' => $this->todayAttendance->clock_out?->setTimezone($employeeTimezone)->format('H:i:s'),
                 'status' => $this->todayAttendance->status->value,
+            ] : null,
+            'shift' => $this->shiftPolicy ? [
+                'id' => $this->shiftPolicy->id,
+                'name' => $this->shiftPolicy->name,
+                'start_time' => $this->shiftPolicy->start_time?->format('H:i'),
+                'end_time' => $this->shiftPolicy->end_time?->format('H:i'),
+                'late_after_minutes' => $this->shiftPolicy->late_after_minutes,
             ] : null,
             'message' => $this->message,
         ];

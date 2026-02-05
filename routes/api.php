@@ -62,7 +62,8 @@ Route::prefix('v1')->group(function () {
             Route::prefix('employee')->group(function () {
                 Route::get('detail', EmployeeDetailController::class);
                 Route::get('salary', EmployeeSalaryController::class);
-                Route::get('payslips', EmployeePayslipController::class);
+                Route::get('payslips', [EmployeePayslipController::class, 'index']);
+                Route::get('payslips/{id}', [EmployeePayslipController::class, 'show']);
             });
         });
     });

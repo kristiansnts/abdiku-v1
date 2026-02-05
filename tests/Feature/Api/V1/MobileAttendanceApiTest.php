@@ -225,6 +225,7 @@ class MobileAttendanceApiTest extends TestCase
                     'has_clocked_in',
                     'has_clocked_out',
                     'today_attendance',
+                    'shift',
                     'message'
                 ]
             ]);
@@ -235,6 +236,64 @@ class MobileAttendanceApiTest extends TestCase
         $this->assertFalse($data['has_clocked_in']);
         $this->assertFalse($data['has_clocked_out']);
         $this->assertNull($data['today_attendance']);
+        $this->assertNull($data['shift']); // No work assignment yet
+    }
+
+    /** @test */
+    public function it_can_get_today_attendance_status_with_shift_info()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Create shift policy and work assignment
+        $shiftPolicy = ShiftPolicy::factory()->create([
+            'company_id' => $this->company->id,
+            'name' => 'Regular Shift',
+            'start_time' => '08:00:00',
+            'end_time' => '17:00:00',
+            'late_after_minutes' => 15,
+            'minimum_work_hours' => 8,
+        ]);
+
+        $workPattern = WorkPattern::factory()->create([
+            'company_id' => $this->company->id,
+        ]);
+
+        EmployeeWorkAssignment::factory()->create([
+            'employee_id' => $this->employee->id,
+            'shift_policy_id' => $shiftPolicy->id,
+            'work_pattern_id' => $workPattern->id,
+            'effective_from' => now()->subMonth(),
+            'effective_to' => null,
+        ]);
+
+        $response = $this->getJson('/api/v1/attendance/status');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'can_clock_in',
+                    'can_clock_out',
+                    'has_clocked_in',
+                    'has_clocked_out',
+                    'today_attendance',
+                    'shift' => [
+                        'id',
+                        'name',
+                        'start_time',
+                        'end_time',
+                        'late_after_minutes',
+                    ],
+                    'message'
+                ]
+            ]);
+
+        $data = $response->json('data');
+        $this->assertNotNull($data['shift']);
+        $this->assertEquals('Regular Shift', $data['shift']['name']);
+        $this->assertEquals('08:00', $data['shift']['start_time']);
+        $this->assertEquals('17:00', $data['shift']['end_time']);
+        $this->assertEquals(15, $data['shift']['late_after_minutes']);
     }
 
     /** @test */
@@ -961,13 +1020,75 @@ class MobileAttendanceApiTest extends TestCase
                     'company' => [
                         'id',
                         'name'
-                    ]
+                    ],
+                    'shift'
                 ]
             ]);
 
         $this->assertTrue($response->json('success'));
         $this->assertEquals($this->employee->id, $response->json('data.id'));
         $this->assertEquals($this->employee->name, $response->json('data.name'));
+        $this->assertNull($response->json('data.shift')); // No work assignment yet
+    }
+
+    /** @test */
+    public function it_can_get_employee_detail_with_shift_info()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Create shift policy and work assignment
+        $shiftPolicy = ShiftPolicy::factory()->create([
+            'company_id' => $this->company->id,
+            'name' => 'Morning Shift',
+            'start_time' => '07:00:00',
+            'end_time' => '16:00:00',
+            'late_after_minutes' => 10,
+            'minimum_work_hours' => 8,
+        ]);
+
+        $workPattern = WorkPattern::factory()->create([
+            'company_id' => $this->company->id,
+        ]);
+
+        EmployeeWorkAssignment::factory()->create([
+            'employee_id' => $this->employee->id,
+            'shift_policy_id' => $shiftPolicy->id,
+            'work_pattern_id' => $workPattern->id,
+            'effective_from' => now()->subMonth(),
+            'effective_to' => null,
+        ]);
+
+        $response = $this->getJson('/api/v1/employee/detail');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'id',
+                    'name',
+                    'join_date',
+                    'resign_date',
+                    'status',
+                    'company' => ['id', 'name'],
+                    'shift' => [
+                        'id',
+                        'name',
+                        'start_time',
+                        'end_time',
+                        'late_after_minutes',
+                        'minimum_work_hours',
+                    ]
+                ]
+            ]);
+
+        $this->assertTrue($response->json('success'));
+        $this->assertEquals($this->employee->id, $response->json('data.id'));
+        $this->assertNotNull($response->json('data.shift'));
+        $this->assertEquals('Morning Shift', $response->json('data.shift.name'));
+        $this->assertEquals('07:00', $response->json('data.shift.start_time'));
+        $this->assertEquals('16:00', $response->json('data.shift.end_time'));
+        $this->assertEquals(10, $response->json('data.shift.late_after_minutes'));
+        $this->assertEquals(8, $response->json('data.shift.minimum_work_hours'));
     }
 
     /** @test */
@@ -1133,6 +1254,114 @@ class MobileAttendanceApiTest extends TestCase
         $this->assertCount(10, $response->json('data')); // Should be paginated to 10 items
         $this->assertEquals(15, $response->json('meta.total'));
         $this->assertEquals(2, $response->json('meta.last_page'));
+    }
+
+    /** @test */
+    public function it_can_get_payslip_detail_by_id()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Create payroll data
+        $payrollPeriod = \App\Domain\Payroll\Models\PayrollPeriod::factory()->create([
+            'company_id' => $this->company->id,
+            'period_start' => now()->startOfMonth(),
+            'period_end' => now()->endOfMonth(),
+            'year' => now()->year,
+            'month' => now()->month,
+        ]);
+
+        $payrollBatch = \App\Domain\Payroll\Models\PayrollBatch::factory()->finalized()->create([
+            'company_id' => $this->company->id,
+            'payroll_period_id' => $payrollPeriod->id,
+        ]);
+
+        $payrollRow = \App\Domain\Payroll\Models\PayrollRow::factory()->create([
+            'payroll_batch_id' => $payrollBatch->id,
+            'employee_id' => $this->employee->id,
+            'gross_amount' => 12000000,
+            'deduction_amount' => 2500000,
+            'net_amount' => 9500000,
+        ]);
+
+        $response = $this->getJson("/api/v1/employee/payslips/{$payrollRow->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'id',
+                    'period' => [
+                        'year',
+                        'month',
+                        'period_start',
+                        'period_end'
+                    ],
+                    'gross_amount',
+                    'deduction_amount',
+                    'net_amount',
+                    'attendance_count',
+                    'deductions',
+                    'additions',
+                    'finalized_at'
+                ]
+            ]);
+
+        $this->assertTrue($response->json('success'));
+        $this->assertEquals($payrollRow->id, $response->json('data.id'));
+        $this->assertEquals(12000000, $response->json('data.gross_amount'));
+        $this->assertEquals(9500000, $response->json('data.net_amount'));
+    }
+
+    /** @test */
+    public function it_returns_404_for_nonexistent_payslip()
+    {
+        Sanctum::actingAs($this->user);
+
+        $response = $this->getJson('/api/v1/employee/payslips/99999');
+
+        $response->assertStatus(404)
+            ->assertJson([
+                'success' => false,
+                'error' => [
+                    'code' => 'PAYSLIP_NOT_FOUND',
+                    'message' => 'Slip gaji tidak ditemukan.',
+                ]
+            ]);
+    }
+
+    /** @test */
+    public function it_cannot_access_other_employee_payslip()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Create another employee and their payslip
+        $otherEmployee = Employee::factory()->create([
+            'company_id' => $this->company->id
+        ]);
+
+        $payrollPeriod = \App\Domain\Payroll\Models\PayrollPeriod::factory()->create([
+            'company_id' => $this->company->id,
+        ]);
+
+        $payrollBatch = \App\Domain\Payroll\Models\PayrollBatch::factory()->finalized()->create([
+            'company_id' => $this->company->id,
+            'payroll_period_id' => $payrollPeriod->id,
+        ]);
+
+        $otherPayslip = \App\Domain\Payroll\Models\PayrollRow::factory()->create([
+            'payroll_batch_id' => $payrollBatch->id,
+            'employee_id' => $otherEmployee->id,
+        ]);
+
+        $response = $this->getJson("/api/v1/employee/payslips/{$otherPayslip->id}");
+
+        $response->assertStatus(404)
+            ->assertJson([
+                'success' => false,
+                'error' => [
+                    'code' => 'PAYSLIP_NOT_FOUND',
+                ]
+            ]);
     }
 
     // =============================================================================
