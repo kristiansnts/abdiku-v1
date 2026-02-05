@@ -19,6 +19,8 @@ class LocationMapPicker extends Field
 
     protected string|Closure|null $address = null;
 
+    protected int|Closure|null $zoom = 17;
+
     public function latitude(float|Closure|null $latitude): static
     {
         $this->latitude = $latitude;
@@ -47,6 +49,13 @@ class LocationMapPicker extends Field
         return $this;
     }
 
+    public function zoom(int|Closure|null $zoom): static
+    {
+        $this->zoom = $zoom;
+
+        return $this;
+    }
+
     public function getLatitude(): ?float
     {
         return $this->evaluate($this->latitude);
@@ -65,6 +74,11 @@ class LocationMapPicker extends Field
     public function getAddress(): ?string
     {
         return $this->evaluate($this->address);
+    }
+
+    public function getZoom(): int
+    {
+        return $this->evaluate($this->zoom) ?? 17;
     }
 
     public function getParentStatePath(): string

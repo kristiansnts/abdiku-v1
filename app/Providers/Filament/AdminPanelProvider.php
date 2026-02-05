@@ -12,6 +12,8 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentView;
 use Filament\Widgets;
+use App\Filament\Widgets\CompanyLocationMapWidget;
+use App\Filament\Widgets\DailyAttendanceWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -40,7 +42,8 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
+                CompanyLocationMapWidget::class,
+                DailyAttendanceWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -61,7 +64,11 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->renderHook(
                 'panels::head.end',
-                fn (): string => Blade::render('<script src="https://maps.googleapis.com/maps/api/js?key={{ config(\'services.google.maps_api_key\') }}&libraries=places" defer></script>')
+                fn(): string => Blade::render('
+                    @if(config(\'services.google.maps_api_key\'))
+                        <script src="https://maps.googleapis.com/maps/api/js?key={{ config(\'services.google.maps_api_key\') }}&libraries=places" defer></script>
+                    @endif
+                ')
             );
     }
 }

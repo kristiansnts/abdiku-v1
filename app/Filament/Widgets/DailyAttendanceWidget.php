@@ -2,47 +2,59 @@
 
 declare(strict_types=1);
 
-namespace App\Filament\Resources\Attendance\Tables;
+namespace App\Filament\Widgets;
 
-use App\Domain\Attendance\Enums\AttendanceSource;
+use App\Domain\Attendance\Models\AttendanceRaw;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Filament\Widgets\TableWidget as BaseWidget;
 
-final class AttendanceRecordsTable
+class DailyAttendanceWidget extends BaseWidget
 {
-    public static function configure(Table $table): Table
+    protected static ?int $sort = 3;
+
+    protected int|string|array $columnSpan = 'full';
+
+    protected static ?string $heading = 'Kehadiran Hari Ini';
+
+    public static function canView(): bool
+    {
+        return true;
+    }
+
+    public function table(Table $table): Table
     {
         return $table
+            ->query(
+                AttendanceRaw::query()
+                    ->with(['employee', 'companyLocation'])
+                    ->whereDate('date', now('Asia/Jakarta')->toDateString())
+                    ->latest('clock_in')
+            )
             ->columns([
                 TextColumn::make('employee.name')
                     ->label('Karyawan')
-                    ->sortable()
-                    ->searchable(),
-                TextColumn::make('date')
-                    ->label('Tanggal')
-                    ->date()
+                    ->searchable()
                     ->sortable(),
                 TextColumn::make('clock_in')
-                    ->label('Jam Masuk')
-                    ->time()
+                    ->label('Masuk')
+                    ->dateTime('H:i')
                     ->timezone('Asia/Jakarta')
                     ->sortable(),
                 TextColumn::make('clock_out')
-                    ->label('Jam Keluar')
-                    ->time()
+                    ->label('Keluar')
+                    ->dateTime('H:i')
                     ->timezone('Asia/Jakarta')
+                    ->placeholder('-')
                     ->sortable(),
                 TextColumn::make('source')
                     ->label('Sumber')
                     ->badge(),
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->badge(),
             ])
-            ->defaultSort('date', 'desc')
-            ->filters([
-                SelectFilter::make('source')
-                    ->label('Sumber')
-                    ->options(AttendanceSource::class),
-            ])
+            ->defaultSort('clock_in', 'desc')
             ->actions([
                 \Filament\Tables\Actions\Action::make('viewLocation')
                     ->label('Lihat Lokasi')
@@ -61,6 +73,10 @@ final class AttendanceRecordsTable
                             ->address($record->companyLocation?->address)
                             ->disabled()
                     ]),
-            ]);
+            ])
+            ->paginated([5, 10, 25])
+            ->defaultPaginationPageOption(10)
+            ->emptyStateHeading('Belum ada data kehadiran')
+            ->emptyStateDescription('Data kehadiran hari ini belum tersedia.');
     }
 }

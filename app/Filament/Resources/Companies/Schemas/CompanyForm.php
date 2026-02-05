@@ -70,7 +70,7 @@ final class CompanyForm
                                     ->default(false),
                             ])
                             ->columns(1)
-                            ->itemLabel(fn (array $state): ?string => $state['name'] ?? 'Lokasi Baru')
+                            ->itemLabel(fn(array $state): ?string => $state['name'] ?? 'Lokasi Baru')
                             ->addActionLabel('Tambah Lokasi')
                             ->reorderable()
                             ->collapsible()
