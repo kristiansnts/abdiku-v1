@@ -14,7 +14,8 @@ enum AttendanceClassification: string implements HasLabel, HasColor
     case ABSENT = 'ABSENT';
     case PAID_LEAVE = 'PAID_LEAVE';
     case UNPAID_LEAVE = 'UNPAID_LEAVE';
-    case HOLIDAY = 'HOLIDAY';
+    case HOLIDAY_PAID = 'HOLIDAY_PAID';
+    case HOLIDAY_UNPAID = 'HOLIDAY_UNPAID';
     case PAID_SICK = 'PAID_SICK';
     case UNPAID_SICK = 'UNPAID_SICK';
 
@@ -26,7 +27,8 @@ enum AttendanceClassification: string implements HasLabel, HasColor
             self::ABSENT => 'Absen',
             self::PAID_LEAVE => 'Cuti Dibayar',
             self::UNPAID_LEAVE => 'Cuti Tidak Dibayar',
-            self::HOLIDAY => 'Libur',
+            self::HOLIDAY_PAID => 'Libur Dibayar',
+            self::HOLIDAY_UNPAID => 'Libur Tidak Dibayar',
             self::PAID_SICK => 'Sakit Dibayar',
             self::UNPAID_SICK => 'Sakit Tidak Dibayar',
         };
@@ -40,7 +42,8 @@ enum AttendanceClassification: string implements HasLabel, HasColor
             self::ABSENT => 'danger',
             self::PAID_LEAVE => 'info',
             self::UNPAID_LEAVE => 'gray',
-            self::HOLIDAY => 'primary',
+            self::HOLIDAY_PAID => 'primary',
+            self::HOLIDAY_UNPAID => 'gray',
             self::PAID_SICK => 'info',
             self::UNPAID_SICK => 'gray',
         };

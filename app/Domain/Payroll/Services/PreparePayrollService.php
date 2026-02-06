@@ -9,6 +9,7 @@ use App\Domain\Attendance\Enums\AttendanceStatus;
 use App\Domain\Attendance\Models\AttendanceDecision;
 use App\Domain\Attendance\Models\AttendanceRaw;
 use App\Domain\Attendance\Models\AttendanceTimeCorrection;
+use App\Domain\Leave\Models\Holiday;
 use App\Domain\Leave\Models\LeaveRecord;
 use App\Domain\Payroll\Enums\DeductionType;
 use App\Domain\Payroll\Enums\PayrollState;
@@ -71,6 +72,10 @@ class PreparePayrollService
             ->where('date', $date)
             ->first();
 
+        $holiday = Holiday::where('company_id', $employee->company_id)
+            ->where('date', $date)
+            ->first();
+
         $attendance = AttendanceRaw::where('employee_id', $employee->id)
             ->where('date', $date)
             ->first();
@@ -80,7 +85,7 @@ class PreparePayrollService
             ->where('date', $date)
             ->first();
 
-        $classification = $this->determineClassification($attendance, $leave, $correction);
+        $classification = $this->determineClassification($attendance, $leave, $holiday, $correction);
         $deduction = $this->determineDeduction($classification);
         AttendanceDecision::updateOrCreate(
             [
@@ -102,6 +107,7 @@ class PreparePayrollService
     private function determineClassification(
         ?AttendanceRaw $attendance,
         ?LeaveRecord $leave,
+        ?Holiday $holiday,
         ?AttendanceTimeCorrection $correction = null,
     ): AttendanceClassification {
         // Leave takes precedence
@@ -112,6 +118,13 @@ class PreparePayrollService
                 'SICK_PAID' => AttendanceClassification::PAID_SICK,
                 'SICK_UNPAID' => AttendanceClassification::UNPAID_SICK,
             };
+        }
+
+        // Holiday takes precedence over attendance
+        if ($holiday !== null) {
+            return $holiday->is_paid
+                ? AttendanceClassification::HOLIDAY_PAID
+                : AttendanceClassification::HOLIDAY_UNPAID;
         }
 
         // Use corrected clock-in if available, otherwise use raw clock-in
@@ -137,7 +150,7 @@ class PreparePayrollService
             AttendanceClassification::LATE,
             AttendanceClassification::PAID_LEAVE,
             AttendanceClassification::PAID_SICK,
-            AttendanceClassification::HOLIDAY,
+            AttendanceClassification::HOLIDAY_PAID,
         ], true);
     }
 
@@ -149,7 +162,8 @@ class PreparePayrollService
         return match ($classification) {
             AttendanceClassification::ABSENT,
             AttendanceClassification::UNPAID_LEAVE,
-            AttendanceClassification::UNPAID_SICK => [
+            AttendanceClassification::UNPAID_SICK,
+            AttendanceClassification::HOLIDAY_UNPAID => [
                 'type' => DeductionType::FULL,
                 'value' => null,
             ],

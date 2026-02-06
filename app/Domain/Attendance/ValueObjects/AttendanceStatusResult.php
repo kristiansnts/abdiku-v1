@@ -6,6 +6,7 @@ namespace App\Domain\Attendance\ValueObjects;
 
 use App\Domain\Attendance\Models\AttendanceRaw;
 use App\Domain\Attendance\Models\ShiftPolicy;
+use App\Domain\Leave\Models\Holiday;
 
 readonly class AttendanceStatusResult
 {
@@ -17,6 +18,8 @@ readonly class AttendanceStatusResult
         public ?AttendanceRaw $todayAttendance = null,
         public ?ShiftPolicy $shiftPolicy = null,
         public ?string $message = null,
+        public bool $isHoliday = false,
+        public ?Holiday $holiday = null,
     ) {}
 
     public function toArray(): array
@@ -43,6 +46,13 @@ readonly class AttendanceStatusResult
                 'late_after_minutes' => $this->shiftPolicy->late_after_minutes,
             ] : null,
             'message' => $this->message,
+            'is_holiday' => $this->isHoliday,
+            'holiday' => $this->holiday ? [
+                'id' => $this->holiday->id,
+                'name' => $this->holiday->name,
+                'date' => $this->holiday->date->format('Y-m-d'),
+                'is_paid' => $this->holiday->is_paid,
+            ] : null,
         ];
     }
 }
