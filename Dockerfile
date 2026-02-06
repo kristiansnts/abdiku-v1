@@ -14,7 +14,14 @@ COPY tailwind.config.js* ./
 RUN npm run build
 
 # Stage 2: Install PHP dependencies
-FROM composer:2 AS composer
+FROM php:8.3-cli-alpine AS composer
+
+# Install composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Install required extensions for composer install
+RUN apk add --no-cache icu-dev \
+    && docker-php-ext-install intl
 
 WORKDIR /app
 
