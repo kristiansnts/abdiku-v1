@@ -15,7 +15,7 @@ return new class() extends Migration
             $table->foreignId('payroll_period_id')->constrained()->onDelete('cascade');
             $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
             $table->date('date');
-            $table->enum('classification', ['ATTEND', 'LATE', 'ABSENT', 'PAID_LEAVE', 'UNPAID_LEAVE', 'HOLIDAY', 'PAID_SICK', 'UNPAID_SICK']);
+            $table->enum('classification', ['ATTEND', 'LATE', 'ABSENT', 'PAID_LEAVE', 'UNPAID_LEAVE', 'HOLIDAY_PAID', 'HOLIDAY_UNPAID', 'PAID_SICK', 'UNPAID_SICK']);
             $table->boolean('payable');
             $table->enum('deduction_type', ['NONE', 'FULL', 'PERCENTAGE']);
             $table->decimal('deduction_value', 8, 2)->nullable();
