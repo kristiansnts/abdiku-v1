@@ -79,6 +79,7 @@ Route::prefix('v1')->group(function () {
             // Payslips alias
             Route::get('payslips', [PayslipController::class, 'index']);
             Route::get('payslips/{id}', [PayslipController::class, 'show']);
+            Route::get('payslips/{id}/download', PayslipDownloadController::class);
             Route::get('payslips/{id}/download-url', PayslipDownloadUrlController::class);
 
             Route::prefix('company')->group(function () {
@@ -90,6 +91,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('salary', EmployeeSalaryController::class);
                 Route::get('payslips', [EmployeePayslipController::class, 'index']);
                 Route::get('payslips/{id}', [EmployeePayslipController::class, 'show']);
+                Route::get('payslips/{id}/download', PayslipDownloadController::class);
                 Route::get('payslips/{id}/download-url', PayslipDownloadUrlController::class);
             });
         });
