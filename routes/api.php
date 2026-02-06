@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\ActivityController;
+use App\Http\Controllers\Api\V1\Attendance\AttendanceDetailController;
 use App\Http\Controllers\Api\V1\Attendance\AttendanceHistoryController;
 use App\Http\Controllers\Api\V1\Attendance\AttendanceRequestController;
 use App\Http\Controllers\Api\V1\Attendance\AttendanceStatusController;
@@ -12,6 +14,8 @@ use App\Http\Controllers\Api\V1\Company\CompanyLocationController;
 use App\Http\Controllers\Api\V1\Employee\EmployeeDetailController;
 use App\Http\Controllers\Api\V1\Employee\EmployeePayslipController;
 use App\Http\Controllers\Api\V1\Employee\EmployeeSalaryController;
+use App\Http\Controllers\Api\V1\HomeController;
+use App\Http\Controllers\Api\V1\PayslipController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -53,7 +57,20 @@ Route::prefix('v1')->group(function () {
                 Route::post('requests', [AttendanceRequestController::class, 'store']);
                 Route::get('requests/{id}', [AttendanceRequestController::class, 'show']);
                 Route::delete('requests/{id}', [AttendanceRequestController::class, 'cancel']);
+
+                // Attendance detail (must be after named routes)
+                Route::get('{id}', AttendanceDetailController::class)->where('id', '[0-9]+');
             });
+
+            // Activity feed
+            Route::get('activities', ActivityController::class);
+
+            // Home aggregator
+            Route::get('home', HomeController::class);
+
+            // Payslips alias
+            Route::get('payslips', [PayslipController::class, 'index']);
+            Route::get('payslips/{id}', [PayslipController::class, 'show']);
 
             Route::prefix('company')->group(function () {
                 Route::get('locations', CompanyLocationController::class);

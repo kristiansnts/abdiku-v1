@@ -285,9 +285,129 @@ List all registered devices for the user.
 
 ---
 
-## 2. Attendance Endpoints
+## 2. Home & Activity Endpoints
 
-### 2.1 Get Today's Status
+### 2.1 Get Home Screen Data
+
+Aggregated data for the mobile home screen. Returns today's attendance status, latest activity, and latest payslip in a single request.
+
+**Endpoint**: `GET /home`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Success Response** (200):
+```json
+{
+  "success": true,
+  "data": {
+    "today_attendance": {
+      "status": "PRESENT",
+      "clock_in": "09:37:00",
+      "clock_out": null,
+      "shift": "08:30–17:30"
+    },
+    "can_clock_in": false,
+    "can_clock_out": true,
+    "latest_activity": [
+      {
+        "id": 101,
+        "type": "CLOCK_IN",
+        "datetime": "2026-02-06T09:37:00",
+        "status": "APPROVED",
+        "label": "Disetujui"
+      },
+      {
+        "id": 102,
+        "type": "LEAVE_REQUEST",
+        "datetime": "2026-02-05T08:00:00",
+        "status": "APPROVED",
+        "label": "Izin Sakit"
+      }
+    ],
+    "latest_payslip": {
+      "id": 12,
+      "period": "Jan 2026",
+      "net_amount": 10950000
+    }
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| today_attendance.status | string | Current attendance status (PRESENT, LATE, ABSENT, etc.) |
+| today_attendance.clock_in | string | Clock in time (HH:mm:ss) or null |
+| today_attendance.clock_out | string | Clock out time (HH:mm:ss) or null |
+| today_attendance.shift | string | Shift schedule (start–end) or null |
+| can_clock_in | boolean | Whether user can clock in |
+| can_clock_out | boolean | Whether user can clock out |
+| latest_activity | array | Last 5 activity items (attendance + requests) |
+| latest_payslip | object | Most recent finalized payslip or null |
+
+---
+
+### 2.2 Get Activity Feed
+
+Unified activity feed combining attendance records and requests, sorted by datetime.
+
+**Endpoint**: `GET /activities`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Query Parameters**:
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| month | string | null | Filter by month (format: YYYY-MM) |
+| limit | integer | 10 | Maximum items to return |
+
+**Examples**:
+- `GET /activities` - Latest 10 activities
+- `GET /activities?month=2026-02` - Activities in February 2026
+- `GET /activities?limit=20` - Latest 20 activities
+
+**Success Response** (200):
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 101,
+      "type": "CLOCK_IN",
+      "datetime": "2026-02-06T09:37:00",
+      "status": "APPROVED",
+      "label": "Disetujui"
+    },
+    {
+      "id": 102,
+      "type": "LEAVE_REQUEST",
+      "datetime": "2026-02-05T08:00:00",
+      "status": "APPROVED",
+      "label": "Izin Sakit"
+    },
+    {
+      "id": 100,
+      "type": "CLOCK_OUT",
+      "datetime": "2026-02-04T17:58:00",
+      "status": "APPROVED",
+      "label": "Disetujui"
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | integer | Record ID |
+| type | string | Activity type: CLOCK_IN, CLOCK_OUT, LATE, LEAVE_REQUEST, etc. |
+| datetime | string | ISO 8601 datetime |
+| status | string | Status: PENDING, APPROVED, REJECTED |
+| label | string | Human-readable label (localized) |
+
+---
+
+## 3. Attendance Endpoints
+
+### 3.1 Get Today's Status
 
 Check current attendance status for today.
 
@@ -311,10 +431,37 @@ Check current attendance status for today.
       "clock_out": null,
       "status": "APPROVED"
     },
+    "shift": {
+      "id": 1,
+      "name": "Regular Shift",
+      "start_time": "08:00",
+      "end_time": "17:00",
+      "late_after_minutes": 15
+    },
     "message": "Sudah clock in, silakan clock out"
   }
 }
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| can_clock_in | boolean | Whether user can clock in |
+| can_clock_out | boolean | Whether user can clock out |
+| has_clocked_in | boolean | Whether user has clocked in today |
+| has_clocked_out | boolean | Whether user has clocked out today |
+| today_attendance | object | Today's attendance record (null if none) |
+| today_attendance.id | integer | Attendance ID |
+| today_attendance.date | date | Attendance date |
+| today_attendance.clock_in | string | Clock in time (HH:mm:ss) |
+| today_attendance.clock_out | string | Clock out time (HH:mm:ss) |
+| today_attendance.status | string | Attendance status |
+| shift | object | Current shift policy (null if not assigned) |
+| shift.id | integer | Shift policy ID |
+| shift.name | string | Shift name |
+| shift.start_time | string | Shift start time (HH:mm) |
+| shift.end_time | string | Shift end time (HH:mm) |
+| shift.late_after_minutes | integer | Minutes after start considered late |
+| message | string | Status message for UI |
 
 **Status Values**:
 - `can_clock_in: true, can_clock_out: false` → User hasn't clocked in
@@ -323,7 +470,7 @@ Check current attendance status for today.
 
 ---
 
-### 2.2 Clock In
+### 3.2 Clock In
 
 Submit clock-in with location and device evidence.
 
@@ -460,7 +607,7 @@ evidence[photo]: (binary file)
 
 ---
 
-### 2.3 Clock Out
+### 3.3 Clock Out
 
 Submit clock-out.
 
@@ -516,7 +663,7 @@ Submit clock-out.
 
 ---
 
-### 2.4 Attendance History
+### 3.4 Attendance History
 
 Get paginated attendance history.
 
@@ -540,24 +687,16 @@ Get paginated attendance history.
     {
       "id": 123,
       "date": "2026-02-02",
-      "clock_in": "2026-02-02 08:05:30",
-      "clock_out": "2026-02-02 17:30:00",
-      "source": "MOBILE",
-      "status": "APPROVED",
-      "status_label": "Disetujui",
-      "evidences": [...],
-      "location": {...}
+      "clock_in": "08:05",
+      "clock_out": "17:30",
+      "status": "APPROVED"
     },
     {
       "id": 122,
       "date": "2026-02-01",
-      "clock_in": "2026-02-01 08:00:00",
-      "clock_out": "2026-02-01 17:00:00",
-      "source": "MOBILE",
-      "status": "APPROVED",
-      "status_label": "Disetujui",
-      "evidences": [...],
-      "location": {...}
+      "clock_in": "08:00",
+      "clock_out": "17:00",
+      "status": "APPROVED"
     }
   ],
   "meta": {
@@ -569,11 +708,87 @@ Get paginated attendance history.
 }
 ```
 
+> **Note**: For full attendance details including evidences, location, and approval info, use `GET /attendance/{id}`.
+
 ---
 
-## 3. Attendance Correction Requests
+### 3.5 Get Attendance Detail
 
-### 3.1 List Correction Requests
+Get detailed information for a specific attendance record including evidences, location, and approval requests.
+
+**Endpoint**: `GET /attendance/{id}`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Path Parameters**:
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Attendance record ID |
+
+**Example**: `GET /attendance/123`
+
+**Success Response** (200):
+```json
+{
+  "success": true,
+  "data": {
+    "id": 123,
+    "date": "2026-02-02",
+    "clock_in": "2026-02-02 08:05:30",
+    "clock_out": "2026-02-02 17:30:00",
+    "source": "MOBILE",
+    "status": "APPROVED",
+    "status_label": "Disetujui",
+    "shift": {
+      "id": 1,
+      "name": "Regular Shift",
+      "start_time": "08:00",
+      "end_time": "17:00"
+    },
+    "evidences": [
+      {
+        "id": 1,
+        "type": "GEOLOCATION",
+        "data": {
+          "lat": -6.2088,
+          "lng": 106.8456,
+          "accuracy": 10
+        }
+      }
+    ],
+    "location": {
+      "id": 1,
+      "name": "Head Office",
+      "address": "Jl. Sudirman No. 1"
+    },
+    "requests": [
+      {
+        "id": 1,
+        "request_type": "LATE",
+        "status": "APPROVED",
+        "reason": "Traffic jam"
+      }
+    ]
+  }
+}
+```
+
+**Error Response** (404):
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ATTENDANCE_NOT_FOUND",
+    "message": "Data kehadiran tidak ditemukan."
+  }
+}
+```
+
+---
+
+## 4. Attendance Correction Requests
+
+### 4.1 List Correction Requests
 
 Get user's correction requests.
 
@@ -628,7 +843,7 @@ Get user's correction requests.
 
 ---
 
-### 3.2 Create Correction Request
+### 4.2 Create Correction Request
 
 Submit a new correction request.
 
@@ -717,7 +932,7 @@ Submit a new correction request.
 
 ---
 
-### 3.3 Get Request Detail
+### 4.3 Get Request Detail
 
 Get specific correction request.
 
@@ -770,7 +985,7 @@ Get specific correction request.
 
 ---
 
-### 3.4 Cancel Request
+### 4.4 Cancel Request
 
 Cancel a pending correction request.
 
@@ -795,9 +1010,9 @@ Cancel a pending correction request.
 
 ---
 
-## 4. Company Endpoints
+## 5. Company Endpoints
 
-### 4.1 Get Company Locations
+### 5.1 Get Company Locations
 
 Get list of company locations for geofence validation.
 
@@ -834,9 +1049,9 @@ Get list of company locations for geofence validation.
 
 ---
 
-## 5. Employee Endpoints
+## 6. Employee Endpoints
 
-### 5.1 Get Employee Detail
+### 6.1 Get Employee Detail
 
 Get authenticated employee's profile information.
 
@@ -857,10 +1072,35 @@ Get authenticated employee's profile information.
     "company": {
       "id": 1,
       "name": "PT Example Company"
+    },
+    "shift": {
+      "id": 1,
+      "name": "Regular Shift",
+      "start_time": "08:00",
+      "end_time": "17:00",
+      "late_after_minutes": 15,
+      "minimum_work_hours": 8
     }
   }
 }
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | integer | Employee ID |
+| name | string | Employee name |
+| join_date | date | Join date (YYYY-MM-DD) |
+| resign_date | date | Resign date (null if still active) |
+| status | string | Employee status (ACTIVE, INACTIVE, RESIGNED) |
+| company.id | integer | Company ID |
+| company.name | string | Company name |
+| shift | object | Current shift policy (null if not assigned) |
+| shift.id | integer | Shift policy ID |
+| shift.name | string | Shift name |
+| shift.start_time | string | Shift start time (HH:mm) |
+| shift.end_time | string | Shift end time (HH:mm) |
+| shift.late_after_minutes | integer | Minutes after start_time considered late |
+| shift.minimum_work_hours | integer | Minimum work hours required |
 
 **Employee Status Values**:
 | Value | Description |
@@ -871,7 +1111,7 @@ Get authenticated employee's profile information.
 
 ---
 
-### 5.2 Get Employee Salary
+### 6.2 Get Employee Salary
 
 Get authenticated employee's current salary/compensation details.
 
@@ -920,7 +1160,176 @@ Get authenticated employee's current salary/compensation details.
 
 ---
 
-## 6. Error Codes Reference
+### 6.3 List Payslips
+
+Get paginated list of employee's finalized payslips.
+
+**Endpoint**: `GET /employee/payslips` or `GET /payslips`
+
+> **Note**: `GET /payslips` is an alias endpoint for mobile app navigation convenience.
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Query Parameters**:
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| page | integer | 1 | Page number |
+
+**Success Response** (200):
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "period": {
+        "year": 2026,
+        "month": 1,
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31"
+      },
+      "gross_amount": 11450000.00,
+      "deduction_amount": 500000.00,
+      "net_amount": 10950000.00,
+      "attendance_count": 22,
+      "deductions": [
+        {
+          "code": "BPJS_KES",
+          "employee_amount": 100000.00,
+          "employer_amount": 400000.00
+        },
+        {
+          "code": "BPJS_TK",
+          "employee_amount": 200000.00,
+          "employer_amount": 370000.00
+        }
+      ],
+      "additions": [
+        {
+          "code": "BONUS",
+          "description": "Bonus Bulanan",
+          "amount": 500000.00
+        }
+      ],
+      "finalized_at": "2026-02-01 10:00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 3,
+    "per_page": 10,
+    "total": 24
+  }
+}
+```
+
+**Response when no payslips**:
+```json
+{
+  "success": true,
+  "data": [],
+  "meta": {
+    "current_page": 1,
+    "total": 0,
+    "per_page": 10,
+    "last_page": 1
+  },
+  "message": "Slip gaji tidak ditemukan."
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | integer | Payroll row ID |
+| period.year | integer | Payroll year |
+| period.month | integer | Payroll month (1-12) |
+| period.period_start | date | Period start date |
+| period.period_end | date | Period end date |
+| gross_amount | number | Total gross amount |
+| deduction_amount | number | Total deductions |
+| net_amount | number | Net amount (gross - deductions) |
+| attendance_count | integer | Number of attendance days |
+| deductions | array | List of deduction items |
+| deductions[].code | string | Deduction code (e.g., BPJS_KES, BPJS_TK) |
+| deductions[].employee_amount | number | Employee contribution |
+| deductions[].employer_amount | number | Employer contribution |
+| additions | array | List of addition items |
+| additions[].code | string | Addition code |
+| additions[].description | string | Addition description |
+| additions[].amount | number | Addition amount |
+| finalized_at | datetime | When the payroll was finalized |
+
+---
+
+### 6.4 Get Payslip Detail
+
+Get specific payslip details.
+
+**Endpoint**: `GET /employee/payslips/{id}` or `GET /payslips/{id}`
+
+> **Note**: `GET /payslips/{id}` is an alias endpoint for mobile app navigation convenience.
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Path Parameters**:
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Payslip/payroll row ID |
+
+**Success Response** (200):
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "period": {
+      "year": 2026,
+      "month": 1,
+      "period_start": "2026-01-01",
+      "period_end": "2026-01-31"
+    },
+    "gross_amount": 11450000.00,
+    "deduction_amount": 500000.00,
+    "net_amount": 10950000.00,
+    "attendance_count": 22,
+    "deductions": [
+      {
+        "code": "BPJS_KES",
+        "employee_amount": 100000.00,
+        "employer_amount": 400000.00
+      },
+      {
+        "code": "BPJS_TK",
+        "employee_amount": 200000.00,
+        "employer_amount": 370000.00
+      }
+    ],
+    "additions": [
+      {
+        "code": "BONUS",
+        "description": "Bonus Bulanan",
+        "amount": 500000.00
+      }
+    ],
+    "finalized_at": "2026-02-01 10:00:00"
+  }
+}
+```
+
+**Error Response** (404):
+```json
+{
+  "success": false,
+  "error": {
+    "code": "PAYSLIP_NOT_FOUND",
+    "message": "Slip gaji tidak ditemukan."
+  }
+}
+```
+
+---
+
+## 7. Error Codes Reference
 
 ### Authentication Errors
 | Code | Status | Description |
@@ -949,6 +1358,11 @@ Get authenticated employee's current salary/compensation details.
 | ATTENDANCE_LOCKED | 403 | Attendance is locked (payroll processed) |
 | INVALID_ATTENDANCE | 422 | Invalid attendance record |
 
+### Payslip Errors
+| Code | Status | Description |
+|------|--------|-------------|
+| PAYSLIP_NOT_FOUND | 404 | Payslip not found or not yet finalized |
+
 ### General Errors
 | Code | Status | Description |
 |------|--------|-------------|
@@ -958,7 +1372,7 @@ Get authenticated employee's current salary/compensation details.
 
 ---
 
-## 7. Status Values
+## 8. Status Values
 
 ### Attendance Status
 | Value | Label | Description |
@@ -985,7 +1399,7 @@ Get authenticated employee's current salary/compensation details.
 
 ---
 
-## 8. Implementation Notes
+## 9. Implementation Notes
 
 ### Device ID
 Generate a unique device identifier that persists across app reinstalls:
@@ -1021,7 +1435,7 @@ Generate a unique device identifier that persists across app reinstalls:
 
 ---
 
-## 9. Sample Flow
+## 10. Sample Flow
 
 ### Login Flow
 ```
@@ -1060,7 +1474,7 @@ Generate a unique device identifier that persists across app reinstalls:
 
 ---
 
-## 10. Testing
+## 11. Testing
 
 ### Test Credentials
 Contact your system administrator for test account credentials.
@@ -1111,7 +1525,21 @@ curl -X POST https://your-domain.com/api/v1/attendance/clock-in \
 
 ---
 
-## 11. Changelog
+## 12. Changelog
+
+### Version 1.3.0 (2026-02-06)
+- Added Home aggregator endpoint (`GET /home`) for mobile home screen
+- Added Activity feed endpoint (`GET /activities`) with `?month=` and `?limit=` filters
+- Added Attendance detail endpoint (`GET /attendance/{id}`) with full data (evidences, location, requests)
+- Added Payslips alias endpoints (`GET /payslips`, `GET /payslips/{id}`) for mobile navigation
+- Simplified `GET /attendance/history` response (removed `evidences`, `location`, `source`, `status_label`)
+- Reorganized documentation sections
+
+### Version 1.2.0 (2026-02-06)
+- Added Payslips endpoints (`GET /employee/payslips`, `GET /employee/payslips/{id}`)
+- Updated Employee Detail to include shift information
+- Updated Attendance Status to include shift information
+- Added detailed field descriptions for all endpoints
 
 ### Version 1.1.0 (2026-02-03)
 - Added Employee Detail endpoint (`GET /employee/detail`)

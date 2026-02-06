@@ -674,11 +674,7 @@ class MobileAttendanceApiTest extends TestCase
                         'date',
                         'clock_in',
                         'clock_out',
-                        'source',
                         'status',
-                        'status_label',
-                        'evidences',
-                        'location'
                     ]
                 ],
                 'meta' => [
@@ -1738,5 +1734,250 @@ class MobileAttendanceApiTest extends TestCase
         $activeAssignments = EmployeeWorkAssignment::activeOn(now())->get();
 
         $this->assertEquals(1, $activeAssignments->count());
+    }
+
+    // =============================================================================
+    // Home Endpoint Tests
+    // =============================================================================
+
+    /** @test */
+    public function it_can_get_home_screen_data()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Create shift and work assignment
+        $shiftPolicy = ShiftPolicy::factory()->for($this->company)->create([
+            'start_time' => '08:30:00',
+            'end_time' => '17:30:00',
+        ]);
+        $workPattern = WorkPattern::factory()->for($this->company)->create();
+        EmployeeWorkAssignment::factory()
+            ->for($this->employee)
+            ->for($shiftPolicy, 'shiftPolicy')
+            ->for($workPattern, 'workPattern')
+            ->active()
+            ->create();
+
+        // Create today's attendance
+        AttendanceRaw::factory()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->toDateString(),
+            'clock_in' => now()->subHour(),
+            'clock_out' => null,
+            'status' => 'APPROVED',
+        ]);
+
+        $response = $this->getJson('/api/v1/home');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'today_attendance',
+                    'can_clock_in',
+                    'can_clock_out',
+                    'latest_activity',
+                    'latest_payslip',
+                ],
+            ]);
+
+        $this->assertTrue($response->json('success'));
+    }
+
+    /** @test */
+    public function it_returns_home_data_when_not_clocked_in()
+    {
+        Sanctum::actingAs($this->user);
+
+        $response = $this->getJson('/api/v1/home');
+
+        $response->assertStatus(200);
+        $this->assertTrue($response->json('data.can_clock_in'));
+        $this->assertFalse($response->json('data.can_clock_out'));
+    }
+
+    // =============================================================================
+    // Activity Feed Tests
+    // =============================================================================
+
+    /** @test */
+    public function it_can_get_activity_feed()
+    {
+        Sanctum::actingAs($this->user);
+
+        AttendanceRaw::factory()->count(3)->create([
+            'employee_id' => $this->employee->id,
+            'status' => 'APPROVED',
+        ]);
+
+        AttendanceRequest::factory()->count(2)->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+        ]);
+
+        $response = $this->getJson('/api/v1/activities');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    '*' => [
+                        'id',
+                        'type',
+                        'datetime',
+                        'status',
+                        'label',
+                    ],
+                ],
+            ]);
+
+        $this->assertTrue($response->json('success'));
+        $this->assertLessThanOrEqual(10, count($response->json('data')));
+    }
+
+    /** @test */
+    public function it_can_filter_activity_feed_by_month()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Create attendance in current month
+        AttendanceRaw::factory()->create([
+            'employee_id' => $this->employee->id,
+            'date' => now()->startOfMonth(),
+            'status' => 'APPROVED',
+        ]);
+
+        // Create attendance in previous month
+        AttendanceRaw::factory()->create([
+            'employee_id' => $this->employee->id,
+            'date' => now()->subMonth()->startOfMonth(),
+            'status' => 'APPROVED',
+        ]);
+
+        $response = $this->getJson('/api/v1/activities?month=' . now()->format('Y-m'));
+
+        $response->assertStatus(200);
+        $this->assertCount(1, $response->json('data'));
+    }
+
+    /** @test */
+    public function it_can_limit_activity_feed()
+    {
+        Sanctum::actingAs($this->user);
+
+        AttendanceRaw::factory()->count(10)->create([
+            'employee_id' => $this->employee->id,
+            'status' => 'APPROVED',
+        ]);
+
+        $response = $this->getJson('/api/v1/activities?limit=5');
+
+        $response->assertStatus(200);
+        $this->assertCount(5, $response->json('data'));
+    }
+
+    // =============================================================================
+    // Attendance Detail Tests
+    // =============================================================================
+
+    /** @test */
+    public function it_can_get_attendance_detail()
+    {
+        Sanctum::actingAs($this->user);
+
+        $attendance = AttendanceRaw::factory()->create([
+            'employee_id' => $this->employee->id,
+            'company_location_id' => $this->location->id,
+            'status' => 'APPROVED',
+        ]);
+
+        $response = $this->getJson("/api/v1/attendance/{$attendance->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'id',
+                    'date',
+                    'clock_in',
+                    'clock_out',
+                    'source',
+                    'status',
+                    'status_label',
+                    'evidences',
+                    'location',
+                ],
+            ]);
+
+        $this->assertTrue($response->json('success'));
+        $this->assertEquals($attendance->id, $response->json('data.id'));
+    }
+
+    /** @test */
+    public function it_returns_404_for_nonexistent_attendance()
+    {
+        Sanctum::actingAs($this->user);
+
+        $response = $this->getJson('/api/v1/attendance/99999');
+
+        $response->assertStatus(404)
+            ->assertJson([
+                'success' => false,
+                'error' => [
+                    'code' => 'ATTENDANCE_NOT_FOUND',
+                ],
+            ]);
+    }
+
+    /** @test */
+    public function it_cannot_access_other_employee_attendance()
+    {
+        Sanctum::actingAs($this->user);
+
+        $otherEmployee = Employee::factory()->create(['company_id' => $this->company->id]);
+        $otherAttendance = AttendanceRaw::factory()->create([
+            'employee_id' => $otherEmployee->id,
+            'status' => 'APPROVED',
+        ]);
+
+        $response = $this->getJson("/api/v1/attendance/{$otherAttendance->id}");
+
+        $response->assertStatus(404);
+    }
+
+    // =============================================================================
+    // Payslips Alias Tests
+    // =============================================================================
+
+    /** @test */
+    public function it_can_get_payslips_via_alias_endpoint()
+    {
+        Sanctum::actingAs($this->user);
+
+        $response = $this->getJson('/api/v1/payslips');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data',
+                'meta',
+            ]);
+    }
+
+    /** @test */
+    public function it_returns_404_for_nonexistent_payslip_via_alias()
+    {
+        Sanctum::actingAs($this->user);
+
+        $response = $this->getJson('/api/v1/payslips/99999');
+
+        $response->assertStatus(404)
+            ->assertJson([
+                'success' => false,
+                'error' => [
+                    'code' => 'PAYSLIP_NOT_FOUND',
+                ],
+            ]);
     }
 }

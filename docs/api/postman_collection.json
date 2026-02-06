@@ -2,7 +2,7 @@
   "info": {
     "name": "Mobile Attendance API",
     "description": "REST API for mobile attendance application with device management, clock-in/out with geofence validation, and attendance correction requests.",
-    "version": "1.1.0",
+    "version": "1.3.0",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -165,7 +165,74 @@
       "description": "Authentication endpoints for login, logout, and user information"
     },
     {
-      "name": "2. Attendance",
+      "name": "2. Home & Activity",
+      "item": [
+        {
+          "name": "Get Home Screen Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/home",
+              "host": ["{{base_url}}"],
+              "path": ["home"]
+            },
+            "description": "Aggregated data for mobile home screen. Returns today's attendance status, latest activity, and latest payslip in a single request."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Activity Feed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/activities?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["activities"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Maximum items to return (default: 10)"
+                }
+              ]
+            },
+            "description": "Unified activity feed combining attendance records and requests, sorted by datetime."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Activity Feed by Month",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/activities?month=2026-02&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["activities"],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-02",
+                  "description": "Filter by month (format: YYYY-MM)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Maximum items to return"
+                }
+              ]
+            },
+            "description": "Get activity feed filtered by specific month."
+          },
+          "response": []
+        }
+      ],
+      "description": "Home screen aggregator and activity feed endpoints"
+    },
+    {
+      "name": "3. Attendance",
       "item": [
         {
           "name": "Get Today's Status",
@@ -337,7 +404,21 @@
                 }
               ]
             },
-            "description": "Get paginated attendance history"
+            "description": "Get paginated attendance history (simplified response: id, date, clock_in, clock_out, status). Use 'Get Attendance Detail' for full data."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/attendance/1",
+              "host": ["{{base_url}}"],
+              "path": ["attendance", "1"]
+            },
+            "description": "Get detailed attendance record including evidences, location, shift info, and approval requests."
           },
           "response": []
         }
@@ -345,7 +426,7 @@
       "description": "Attendance management endpoints for clock-in, clock-out, and history"
     },
     {
-      "name": "3. Correction Requests",
+      "name": "4. Correction Requests",
       "item": [
         {
           "name": "List Correction Requests",
@@ -479,7 +560,7 @@
       "description": "Attendance correction request endpoints"
     },
     {
-      "name": "4. Company",
+      "name": "5. Company",
       "item": [
         {
           "name": "Get Company Locations",
@@ -499,7 +580,7 @@
       "description": "Company-related endpoints"
     },
     {
-      "name": "5. Employee",
+      "name": "6. Employee",
       "item": [
         {
           "name": "Get Employee Detail",
@@ -571,6 +652,52 @@
         }
       ],
       "description": "Employee profile and compensation endpoints"
+    },
+    {
+      "name": "7. Payslips (Alias)",
+      "item": [
+        {
+          "name": "List Payslips",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payslips?page=1&per_page=10",
+              "host": ["{{base_url}}"],
+              "path": ["payslips"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "description": "Items per page (default: 10)"
+                }
+              ]
+            },
+            "description": "Alias endpoint for /employee/payslips. Get paginated list of employee's payslips."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payslip Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payslips/1",
+              "host": ["{{base_url}}"],
+              "path": ["payslips", "1"]
+            },
+            "description": "Alias endpoint for /employee/payslips/{id}. Get specific payslip detail."
+          },
+          "response": []
+        }
+      ],
+      "description": "Payslips alias endpoints for mobile navigation convenience"
     },
     {
       "name": "Test Scenarios",
