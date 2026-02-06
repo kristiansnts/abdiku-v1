@@ -17,7 +17,8 @@ class AttendanceEvidenceResource extends JsonResource
             'id' => $this->id,
             'type' => $this->type->value,
             'type_label' => $this->type->getLabel(),
-            'payload' => $this->getFormattedPayload(),
+            'action' => $this->action?->value,
+            'data' => $this->getFormattedPayload(),
             'captured_at' => $this->captured_at->format('Y-m-d H:i:s'),
         ];
     }

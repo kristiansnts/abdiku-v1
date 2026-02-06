@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Attendance\Services\Mobile;
 
+use App\Domain\Attendance\Enums\EvidenceAction;
 use App\Domain\Attendance\Enums\EvidenceType;
 use App\Domain\Attendance\Models\AttendanceEvidence;
 use App\Domain\Attendance\Models\AttendanceRaw;
@@ -19,6 +20,7 @@ class EvidenceStorageService
         float $lng,
         ?float $accuracy,
         GeofenceValidationResult $validation,
+        EvidenceAction $action = EvidenceAction::CLOCK_IN,
     ): AttendanceEvidence {
         $payload = [
             'lat' => $lat,
@@ -33,6 +35,7 @@ class EvidenceStorageService
         return AttendanceEvidence::create([
             'attendance_raw_id' => $attendance->id,
             'type' => EvidenceType::GEOLOCATION,
+            'action' => $action,
             'payload' => $payload,
             'captured_at' => now(),
             'hash' => $this->generateHash($payload),
@@ -45,6 +48,7 @@ class EvidenceStorageService
         string $model,
         string $os,
         string $appVersion,
+        EvidenceAction $action = EvidenceAction::CLOCK_IN,
     ): AttendanceEvidence {
         $payload = [
             'device_id' => $deviceId,
@@ -56,6 +60,7 @@ class EvidenceStorageService
         return AttendanceEvidence::create([
             'attendance_raw_id' => $attendance->id,
             'type' => EvidenceType::DEVICE,
+            'action' => $action,
             'payload' => $payload,
             'captured_at' => now(),
             'hash' => $this->generateHash($payload),
@@ -65,6 +70,7 @@ class EvidenceStorageService
     public function storePhoto(
         AttendanceRaw $attendance,
         UploadedFile $photo,
+        EvidenceAction $action = EvidenceAction::CLOCK_IN,
     ): AttendanceEvidence {
         $path = $photo->store(
             'attendance/photos/'.now()->format('Y/m'),
@@ -80,6 +86,7 @@ class EvidenceStorageService
         return AttendanceEvidence::create([
             'attendance_raw_id' => $attendance->id,
             'type' => EvidenceType::PHOTO,
+            'action' => $action,
             'payload' => $payload,
             'captured_at' => now(),
             'hash' => $this->generateHash($payload),

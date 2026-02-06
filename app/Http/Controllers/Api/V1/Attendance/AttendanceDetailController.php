@@ -19,7 +19,7 @@ class AttendanceDetailController extends Controller
         $attendance = AttendanceRaw::query()
             ->where('id', $id)
             ->where('employee_id', $employee->id)
-            ->with(['employee', 'evidences', 'companyLocation', 'requests.reviewer'])
+            ->with(['employee.workAssignments.shiftPolicy', 'evidences', 'companyLocation', 'requests.reviewer'])
             ->first();
 
         if (! $attendance) {

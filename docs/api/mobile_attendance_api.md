@@ -551,7 +551,8 @@ evidence[photo]: (binary file)
         "id": 1,
         "type": "GEOLOCATION",
         "type_label": "Lokasi GPS",
-        "payload": {
+        "action": "CLOCK_IN",
+        "data": {
           "lat": -6.2088,
           "lng": 106.8456,
           "accuracy": 10.5,
@@ -566,7 +567,8 @@ evidence[photo]: (binary file)
         "id": 2,
         "type": "DEVICE",
         "type_label": "Info Perangkat",
-        "payload": {
+        "action": "CLOCK_IN",
+        "data": {
           "device_id": "unique-device-uuid",
           "model": "iPhone 14 Pro",
           "os": "iOS 17.2",
@@ -748,6 +750,9 @@ Get detailed information for a specific attendance record including evidences, l
     "source": "MOBILE",
     "status": "APPROVED",
     "status_label": "Disetujui",
+    "is_late": true,
+    "late_minutes": 5,
+    "late_label": "Terlambat 5 menit",
     "shift": {
       "id": 1,
       "name": "Regular Shift",
@@ -758,11 +763,26 @@ Get detailed information for a specific attendance record including evidences, l
       {
         "id": 1,
         "type": "GEOLOCATION",
+        "type_label": "Lokasi GPS",
+        "action": "CLOCK_IN",
         "data": {
           "lat": -6.2088,
           "lng": 106.8456,
           "accuracy": 10
-        }
+        },
+        "captured_at": "2026-02-02 08:05:30"
+      },
+      {
+        "id": 2,
+        "type": "GEOLOCATION",
+        "type_label": "Lokasi GPS",
+        "action": "CLOCK_OUT",
+        "data": {
+          "lat": -6.2088,
+          "lng": 106.8456,
+          "accuracy": 10
+        },
+        "captured_at": "2026-02-02 17:30:00"
       }
     ],
     "location": {
@@ -780,6 +800,27 @@ Get detailed information for a specific attendance record including evidences, l
     ]
   }
 }
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | integer | Attendance record ID |
+| date | date | Attendance date (YYYY-MM-DD) |
+| clock_in | datetime | Clock in timestamp in employee's timezone |
+| clock_out | datetime | Clock out timestamp in employee's timezone (null if not clocked out) |
+| source | string | Attendance source: MOBILE, MACHINE, REQUEST, IMPORT |
+| status | string | Attendance status: PENDING, APPROVED, REJECTED, LOCKED |
+| status_label | string | Human-readable status label |
+| is_late | boolean | Whether clock-in was late based on shift policy |
+| late_minutes | integer | Minutes late (0 if not late) |
+| late_label | string | Human-readable late label e.g. "Terlambat 5 menit" (empty if not late) |
+| shift | object | Shift policy for the attendance date (null if no work assignment) |
+| shift.id | integer | Shift policy ID |
+| shift.name | string | Shift name |
+| shift.start_time | string | Shift start time (HH:mm) |
+| shift.end_time | string | Shift end time (HH:mm) |
+| evidences | array | List of evidence records (geolocation, device, photo) |
+| location | object | Matched company location (null if outside geofence) |
+| requests | array | List of correction requests for this attendance |
 ```
 
 **Error Response** (404):
@@ -1535,6 +1576,17 @@ curl -X POST https://your-domain.com/api/v1/attendance/clock-in \
 ---
 
 ## 12. Changelog
+
+### Version 1.6.0 (2026-02-06)
+- Added late status fields to attendance detail endpoint (`GET /attendance/{id}`)
+- New fields: `is_late`, `late_minutes`, `late_label` to indicate if clock-in was late
+- Added `shift` object with shift policy details for the attendance date
+- Late calculation uses employee's work assignment and shift policy for the specific date
+
+### Version 1.5.0 (2026-02-06)
+- Added `action` field to evidence objects in attendance detail endpoint
+- Values: `CLOCK_IN` or `CLOCK_OUT` to identify which action the evidence belongs to
+- Renamed `payload` to `data` in evidence objects for consistency
 
 ### Version 1.4.0 (2026-02-06)
 - Added late arrival detection to activity feed and home endpoints

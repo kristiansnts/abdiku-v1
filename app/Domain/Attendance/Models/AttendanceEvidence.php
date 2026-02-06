@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Attendance\Models;
 
+use App\Domain\Attendance\Enums\EvidenceAction;
 use App\Domain\Attendance\Enums\EvidenceType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,10 +12,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AttendanceEvidence extends Model
 {
     protected $table = 'attendance_evidences';
-    
+
     protected $fillable = [
         'attendance_raw_id',
         'type',
+        'action',
         'payload',
         'captured_at',
         'hash',
@@ -22,6 +24,7 @@ class AttendanceEvidence extends Model
 
     protected $casts = [
         'type' => EvidenceType::class,
+        'action' => EvidenceAction::class,
         'payload' => 'array',
         'captured_at' => 'datetime',
     ];

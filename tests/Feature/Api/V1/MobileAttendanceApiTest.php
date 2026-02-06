@@ -375,7 +375,8 @@ class MobileAttendanceApiTest extends TestCase
                             'id',
                             'type',
                             'type_label',
-                            'payload',
+                            'action',
+                            'data',
                             'captured_at'
                         ]
                     ],

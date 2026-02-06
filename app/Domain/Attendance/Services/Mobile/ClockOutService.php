@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Attendance\Services\Mobile;
 
 use App\Domain\Attendance\DataTransferObjects\ClockOutData;
+use App\Domain\Attendance\Enums\EvidenceAction;
 use App\Domain\Attendance\Models\AttendanceRaw;
 use App\Exceptions\Api\AttendanceException;
 use App\Models\Employee;
@@ -59,6 +60,7 @@ class ClockOutService
                     $data->longitude,
                     $data->accuracy,
                     $geofenceResult,
+                    EvidenceAction::CLOCK_OUT,
                 );
             }
 
