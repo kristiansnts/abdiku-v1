@@ -94,7 +94,7 @@ ENV APP_ENV=production
 ENV APP_DEBUG=false
 ENV OCTANE_SERVER=frankenphp
 
-EXPOSE 80
+EXPOSE 8080
 
 # Run entrypoint script (handles migrations, caching, then starts Octane)
 CMD ["/docker-entrypoint.sh"]
