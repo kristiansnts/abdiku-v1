@@ -55,7 +55,7 @@ class HomeController extends Controller
     {
         $attendances = AttendanceRaw::query()
             ->where('employee_id', $employee->id)
-            ->with('employee')
+            ->with(['employee.workAssignments.shiftPolicy'])
             ->orderBy('date', 'desc')
             ->orderBy('clock_in', 'desc')
             ->limit($limit)

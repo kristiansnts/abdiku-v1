@@ -26,7 +26,7 @@ class ActivityController extends Controller
             ->where('employee_id', $employee->id)
             ->when($query['start'], fn ($q) => $q->whereDate('date', '>=', $query['start']))
             ->when($query['end'], fn ($q) => $q->whereDate('date', '<=', $query['end']))
-            ->with('employee')
+            ->with(['employee.workAssignments.shiftPolicy'])
             ->orderBy('date', 'desc')
             ->orderBy('clock_in', 'desc')
             ->limit($limit)

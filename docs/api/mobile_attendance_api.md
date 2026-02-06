@@ -314,7 +314,10 @@ Aggregated data for the mobile home screen. Returns today's attendance status, l
         "type": "CLOCK_IN",
         "datetime": "2026-02-06T09:37:00",
         "status": "APPROVED",
-        "label": "Disetujui"
+        "label": "Disetujui",
+        "is_late": true,
+        "late_minutes": 37,
+        "late_label": "Terlambat 37 menit"
       },
       {
         "id": 102,
@@ -341,7 +344,7 @@ Aggregated data for the mobile home screen. Returns today's attendance status, l
 | today_attendance.shift | string | Shift schedule (start–end) or null |
 | can_clock_in | boolean | Whether user can clock in |
 | can_clock_out | boolean | Whether user can clock out |
-| latest_activity | array | Last 5 activity items (attendance + requests) |
+| latest_activity | array | Last 5 activity items (attendance + requests). Late arrivals include `is_late`, `late_minutes`, `late_label` fields |
 | latest_payslip | object | Most recent finalized payslip or null |
 
 ---
@@ -375,7 +378,10 @@ Unified activity feed combining attendance records and requests, sorted by datet
       "type": "CLOCK_IN",
       "datetime": "2026-02-06T09:37:00",
       "status": "APPROVED",
-      "label": "Disetujui"
+      "label": "Disetujui",
+      "is_late": true,
+      "late_minutes": 37,
+      "late_label": "Terlambat 37 menit"
     },
     {
       "id": 102,
@@ -398,10 +404,13 @@ Unified activity feed combining attendance records and requests, sorted by datet
 | Field | Type | Description |
 |-------|------|-------------|
 | id | integer | Record ID |
-| type | string | Activity type: CLOCK_IN, CLOCK_OUT, LATE, LEAVE_REQUEST, etc. |
+| type | string | Activity type: CLOCK_IN, CLOCK_OUT, LEAVE_REQUEST, etc. |
 | datetime | string | ISO 8601 datetime |
 | status | string | Status: PENDING, APPROVED, REJECTED |
-| label | string | Human-readable label (localized) |
+| label | string | Human-readable status label (localized) |
+| is_late | boolean | (Optional) Whether clock-in was late, only present when true |
+| late_minutes | integer | (Optional) Minutes late, only present when is_late is true |
+| late_label | string | (Optional) Human-readable late label e.g. "Terlambat 37 menit" |
 
 ---
 
@@ -1526,6 +1535,12 @@ curl -X POST https://your-domain.com/api/v1/attendance/clock-in \
 ---
 
 ## 12. Changelog
+
+### Version 1.4.0 (2026-02-06)
+- Added late arrival detection to activity feed and home endpoints
+- Activity items now include `is_late`, `late_minutes`, and `late_label` fields when clock-in was late
+- Late calculation based on employee's shift policy (`start_time` + `late_after_minutes`)
+- Late label format: "Terlambat X menit" or "Terlambat X jam Y menit" for 60+ minutes
 
 ### Version 1.3.0 (2026-02-06)
 - Added Home aggregator endpoint (`GET /home`) for mobile home screen
