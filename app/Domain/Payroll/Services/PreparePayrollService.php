@@ -8,6 +8,7 @@ use App\Domain\Attendance\Enums\AttendanceClassification;
 use App\Domain\Attendance\Enums\AttendanceStatus;
 use App\Domain\Attendance\Models\AttendanceDecision;
 use App\Domain\Attendance\Models\AttendanceRaw;
+use App\Domain\Attendance\Models\AttendanceTimeCorrection;
 use App\Domain\Leave\Models\LeaveRecord;
 use App\Domain\Payroll\Enums\DeductionType;
 use App\Domain\Payroll\Enums\PayrollState;
@@ -74,7 +75,12 @@ class PreparePayrollService
             ->where('date', $date)
             ->first();
 
-        $classification = $this->determineClassification($attendance, $leave);
+        // Check for time correction (from employee request or HR correction)
+        $correction = AttendanceTimeCorrection::where('employee_id', $employee->id)
+            ->where('date', $date)
+            ->first();
+
+        $classification = $this->determineClassification($attendance, $leave, $correction);
         $deduction = $this->determineDeduction($classification);
         AttendanceDecision::updateOrCreate(
             [
@@ -95,8 +101,10 @@ class PreparePayrollService
 
     private function determineClassification(
         ?AttendanceRaw $attendance,
-        ?LeaveRecord $leave
+        ?LeaveRecord $leave,
+        ?AttendanceTimeCorrection $correction = null,
     ): AttendanceClassification {
+        // Leave takes precedence
         if ($leave !== null) {
             return match ($leave->leave_type->value) {
                 'PAID' => AttendanceClassification::PAID_LEAVE,
@@ -106,11 +114,16 @@ class PreparePayrollService
             };
         }
 
-        if ($attendance === null) {
+        // Use corrected clock-in if available, otherwise use raw clock-in
+        $effectiveClockIn = $correction?->corrected_clock_in ?? $attendance?->clock_in;
+
+        // No attendance record and no correction = ABSENT
+        if ($attendance === null && $correction === null) {
             return AttendanceClassification::ABSENT;
         }
 
-        if ($attendance->clock_in === null) {
+        // Have record but no effective clock-in = ABSENT
+        if ($effectiveClockIn === null) {
             return AttendanceClassification::ABSENT;
         }
 

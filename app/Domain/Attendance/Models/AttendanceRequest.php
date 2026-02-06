@@ -27,6 +27,7 @@ class AttendanceRequest extends Model
         'employee_id',
         'company_id',
         'attendance_raw_id',
+        'time_correction_id',
         'request_type',
         'requested_clock_in_at',
         'requested_clock_out_at',
@@ -65,6 +66,16 @@ class AttendanceRequest extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function timeCorrection(): BelongsTo
+    {
+        return $this->belongsTo(AttendanceTimeCorrection::class, 'time_correction_id');
+    }
+
+    public function hasAppliedCorrection(): bool
+    {
+        return $this->time_correction_id !== null;
     }
 
     public function isPending(): bool

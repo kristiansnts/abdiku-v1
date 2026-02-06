@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class AttendanceRaw extends Model
 {
@@ -68,6 +69,27 @@ class AttendanceRaw extends Model
     public function requests(): HasMany
     {
         return $this->hasMany(AttendanceRequest::class);
+    }
+
+    public function timeCorrection(): HasOne
+    {
+        return $this->hasOne(AttendanceTimeCorrection::class);
+    }
+
+    /**
+     * Get effective clock-in time (considering corrections).
+     */
+    public function getEffectiveClockIn(): ?\Carbon\Carbon
+    {
+        return $this->timeCorrection?->corrected_clock_in ?? $this->clock_in;
+    }
+
+    /**
+     * Get effective clock-out time (considering corrections).
+     */
+    public function getEffectiveClockOut(): ?\Carbon\Carbon
+    {
+        return $this->timeCorrection?->corrected_clock_out ?? $this->clock_out;
     }
 
     public function isPending(): bool

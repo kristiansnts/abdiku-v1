@@ -44,6 +44,7 @@ final class AttendanceRecordsTable
                     ->options(AttendanceSource::class),
             ])
             ->actions([
+                \Filament\Tables\Actions\ViewAction::make(),
                 \Filament\Tables\Actions\Action::make('viewLocation')
                     ->label('Lihat Lokasi')
                     ->icon('heroicon-o-map-pin')
