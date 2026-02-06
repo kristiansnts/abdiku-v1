@@ -16,6 +16,11 @@ class Company extends Model
 
     protected $fillable = [
         'name',
+        'address',
+        'phone',
+        'email',
+        'logo_path',
+        'npwp',
     ];
 
     public function users(): HasMany

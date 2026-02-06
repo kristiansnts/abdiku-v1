@@ -1235,6 +1235,7 @@ Get paginated list of employee's finalized payslips.
       "period": {
         "year": 2026,
         "month": 1,
+        "month_name": "Januari",
         "period_start": "2026-01-01",
         "period_end": "2026-01-31"
       },
@@ -1242,18 +1243,6 @@ Get paginated list of employee's finalized payslips.
       "deduction_amount": 500000.00,
       "net_amount": 10950000.00,
       "attendance_count": 22,
-      "deductions": [
-        {
-          "code": "BPJS_KES",
-          "employee_amount": 100000.00,
-          "employer_amount": 400000.00
-        },
-        {
-          "code": "BPJS_TK",
-          "employee_amount": 200000.00,
-          "employer_amount": 370000.00
-        }
-      ],
       "additions": [
         {
           "code": "BONUS",
@@ -1261,6 +1250,65 @@ Get paginated list of employee's finalized payslips.
           "amount": 500000.00
         }
       ],
+      "employee": {
+        "id": 1,
+        "name": "John Doe"
+      },
+      "salary": {
+        "base_salary": 10000000.00,
+        "prorated_base_salary": 10000000.00,
+        "allowances": [
+          { "name": "Transport", "amount": 500000.00 },
+          { "name": "Meal", "amount": 750000.00 }
+        ],
+        "total_allowances": 1250000.00
+      },
+      "attendance": {
+        "payable_days": 22,
+        "total_working_days": 22,
+        "breakdown": {
+          "hadir": 20,
+          "terlambat": 2,
+          "cuti_dibayar": 0,
+          "cuti_tidak_dibayar": 0,
+          "sakit_dibayar": 0,
+          "sakit_tidak_dibayar": 0,
+          "libur_dibayar": 0,
+          "libur_tidak_dibayar": 0,
+          "absen": 0
+        }
+      },
+      "earnings": {
+        "salary": 10000000.00,
+        "allowances": 1250000.00,
+        "additions": [
+          { "code": "BONUS", "name": "Bonus Bulanan", "amount": 500000.00 }
+        ],
+        "total_additions": 500000.00
+      },
+      "deductions": [
+        {
+          "code": "BPJS_KES",
+          "name": "BPJS Kesehatan",
+          "employee_amount": 100000.00,
+          "employer_amount": 400000.00,
+          "rate": 1.0,
+          "basis": "GROSS"
+        },
+        {
+          "code": "BPJS_TK",
+          "name": "BPJS Ketenagakerjaan",
+          "employee_amount": 200000.00,
+          "employer_amount": 370000.00,
+          "rate": 2.0,
+          "basis": "GROSS"
+        }
+      ],
+      "summary": {
+        "gross_amount": 11450000.00,
+        "total_deductions": 500000.00,
+        "net_amount": 10950000.00
+      },
       "finalized_at": "2026-02-01 10:00:00"
     }
   ],
@@ -1288,26 +1336,60 @@ Get paginated list of employee's finalized payslips.
 }
 ```
 
+#### Backward Compatible Fields (Top Level)
 | Field | Type | Description |
 |-------|------|-------------|
 | id | integer | Payroll row ID |
 | period.year | integer | Payroll year |
 | period.month | integer | Payroll month (1-12) |
+| period.month_name | string | Month name in Indonesian (e.g., "Januari") |
 | period.period_start | date | Period start date |
 | period.period_end | date | Period end date |
 | gross_amount | number | Total gross amount |
 | deduction_amount | number | Total deductions |
 | net_amount | number | Net amount (gross - deductions) |
 | attendance_count | integer | Number of attendance days |
-| deductions | array | List of deduction items |
-| deductions[].code | string | Deduction code (e.g., BPJS_KES, BPJS_TK) |
+| additions | array | List of addition items (backward compatible format) |
+| finalized_at | datetime | When the payroll was finalized |
+
+#### New Detailed Fields
+| Field | Type | Description |
+|-------|------|-------------|
+| employee.id | integer | Employee ID |
+| employee.name | string | Employee name |
+| salary.base_salary | number | Full base monthly salary |
+| salary.prorated_base_salary | number | Prorated salary based on attendance |
+| salary.allowances | array | List of allowances with name and amount |
+| salary.total_allowances | number | Sum of all allowances |
+| attendance.payable_days | integer | Days that count as paid |
+| attendance.total_working_days | integer | Total working days in period |
+| attendance.breakdown | object | Detailed breakdown by classification |
+| earnings.salary | number | Prorated base salary |
+| earnings.allowances | number | Total allowances |
+| earnings.additions | array | Addition items with code, name, amount |
+| earnings.total_additions | number | Sum of all additions |
+| deductions[].code | string | Deduction code (e.g., BPJS_KES) |
+| deductions[].name | string | Deduction name |
 | deductions[].employee_amount | number | Employee contribution |
 | deductions[].employer_amount | number | Employer contribution |
-| additions | array | List of addition items |
-| additions[].code | string | Addition code |
-| additions[].description | string | Addition description |
-| additions[].amount | number | Addition amount |
-| finalized_at | datetime | When the payroll was finalized |
+| deductions[].rate | number | Deduction rate percentage (nullable) |
+| deductions[].basis | string | Calculation basis (e.g., "GROSS", nullable) |
+| summary.gross_amount | number | Total gross amount |
+| summary.total_deductions | number | Total deductions |
+| summary.net_amount | number | Net amount |
+
+#### Attendance Breakdown Keys
+| Key | Description |
+|-----|-------------|
+| hadir | Days present (on time) |
+| terlambat | Days late |
+| cuti_dibayar | Paid leave days |
+| cuti_tidak_dibayar | Unpaid leave days |
+| sakit_dibayar | Paid sick days |
+| sakit_tidak_dibayar | Unpaid sick days |
+| libur_dibayar | Paid holiday days |
+| libur_tidak_dibayar | Unpaid holiday days |
+| absen | Absent days |
 
 ---
 
@@ -1335,6 +1417,7 @@ Get specific payslip details.
     "period": {
       "year": 2026,
       "month": 1,
+      "month_name": "Januari",
       "period_start": "2026-01-01",
       "period_end": "2026-01-31"
     },
@@ -1342,18 +1425,6 @@ Get specific payslip details.
     "deduction_amount": 500000.00,
     "net_amount": 10950000.00,
     "attendance_count": 22,
-    "deductions": [
-      {
-        "code": "BPJS_KES",
-        "employee_amount": 100000.00,
-        "employer_amount": 400000.00
-      },
-      {
-        "code": "BPJS_TK",
-        "employee_amount": 200000.00,
-        "employer_amount": 370000.00
-      }
-    ],
     "additions": [
       {
         "code": "BONUS",
@@ -1361,10 +1432,71 @@ Get specific payslip details.
         "amount": 500000.00
       }
     ],
+    "employee": {
+      "id": 1,
+      "name": "John Doe"
+    },
+    "salary": {
+      "base_salary": 10000000.00,
+      "prorated_base_salary": 10000000.00,
+      "allowances": [
+        { "name": "Transport", "amount": 500000.00 },
+        { "name": "Meal", "amount": 750000.00 }
+      ],
+      "total_allowances": 1250000.00
+    },
+    "attendance": {
+      "payable_days": 22,
+      "total_working_days": 22,
+      "breakdown": {
+        "hadir": 20,
+        "terlambat": 2,
+        "cuti_dibayar": 0,
+        "cuti_tidak_dibayar": 0,
+        "sakit_dibayar": 0,
+        "sakit_tidak_dibayar": 0,
+        "libur_dibayar": 0,
+        "libur_tidak_dibayar": 0,
+        "absen": 0
+      }
+    },
+    "earnings": {
+      "salary": 10000000.00,
+      "allowances": 1250000.00,
+      "additions": [
+        { "code": "BONUS", "name": "Bonus Bulanan", "amount": 500000.00 }
+      ],
+      "total_additions": 500000.00
+    },
+    "deductions": [
+      {
+        "code": "BPJS_KES",
+        "name": "BPJS Kesehatan",
+        "employee_amount": 100000.00,
+        "employer_amount": 400000.00,
+        "rate": 1.0,
+        "basis": "GROSS"
+      },
+      {
+        "code": "BPJS_TK",
+        "name": "BPJS Ketenagakerjaan",
+        "employee_amount": 200000.00,
+        "employer_amount": 370000.00,
+        "rate": 2.0,
+        "basis": "GROSS"
+      }
+    ],
+    "summary": {
+      "gross_amount": 11450000.00,
+      "total_deductions": 500000.00,
+      "net_amount": 10950000.00
+    },
     "finalized_at": "2026-02-01 10:00:00"
   }
 }
 ```
+
+> **Note**: Response fields are the same as List Payslips. See section 6.3 for field descriptions.
 
 **Error Response** (404):
 ```json
@@ -1375,6 +1507,96 @@ Get specific payslip details.
     "message": "Slip gaji tidak ditemukan."
   }
 }
+```
+
+---
+
+### 6.5 Get Payslip Download URL
+
+Get a temporary signed URL for downloading payslip PDF. The URL is valid for 5 minutes and can be opened directly in a browser without authentication headers.
+
+**Endpoint**: `GET /employee/payslips/{id}/download-url` or `GET /payslips/{id}/download-url`
+
+**Headers**: `Authorization: Bearer {token}`
+
+**Path Parameters**:
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| id | integer | Payslip/payroll row ID |
+
+**Success Response** (200):
+```json
+{
+  "success": true,
+  "data": {
+    "download_url": "https://your-domain.com/api/v1/payslips/1/download/123?expires=1707235200&signature=abc123...",
+    "expires_in": 300
+  },
+  "message": "URL download valid selama 5 menit."
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| download_url | string | Signed URL to download the PDF (valid for 5 minutes) |
+| expires_in | integer | URL validity in seconds (300 = 5 minutes) |
+
+**Error Response** (404):
+```json
+{
+  "success": false,
+  "error": {
+    "code": "PAYSLIP_NOT_FOUND",
+    "message": "Slip gaji tidak ditemukan."
+  }
+}
+```
+
+---
+
+### 6.6 Download Payslip PDF (Signed URL)
+
+Download payslip PDF using the signed URL. This endpoint does not require authentication headers.
+
+**Endpoint**: Use the `download_url` from section 6.5
+
+> **Important**: Do not construct this URL manually. Always use the URL returned by `GET /payslips/{id}/download-url`.
+
+**Success Response** (200):
+- Returns PDF binary file
+
+**Response Headers**:
+```
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="slip-gaji-john-doe-januari-2026.pdf"
+```
+
+**PDF Contents**:
+- Company header (name, address, phone, email, NPWP)
+- Employee information (name, ID)
+- Period information
+- Attendance summary with breakdown
+- Earnings (base salary, prorated salary, allowances, additions)
+- Employee deductions
+- Employer contributions (for information only)
+- Take home pay (net amount)
+- Generation timestamp
+
+**Error Responses**:
+| Status | Description |
+|--------|-------------|
+| 403 | Invalid or expired signature |
+| 404 | Payslip not found |
+
+---
+
+### Mobile Implementation Flow
+
+```
+1. Call GET /payslips/{id}/download-url with Bearer token
+2. Receive signed download_url in response
+3. Open download_url in browser/WebView (no auth header needed)
+4. PDF downloads automatically
 ```
 
 ---
@@ -1412,6 +1634,7 @@ Get specific payslip details.
 | Code | Status | Description |
 |------|--------|-------------|
 | PAYSLIP_NOT_FOUND | 404 | Payslip not found or not yet finalized |
+| PDF_GENERATION_FAILED | 500 | Failed to generate payslip PDF |
 
 ### General Errors
 | Code | Status | Description |
@@ -1576,6 +1799,24 @@ curl -X POST https://your-domain.com/api/v1/attendance/clock-in \
 ---
 
 ## 12. Changelog
+
+### Version 1.8.0 (2026-02-06)
+- Added PDF payslip download with signed URLs for mobile browser compatibility
+- New endpoint: `GET /payslips/{id}/download-url` returns temporary signed URL (valid 5 mins)
+- Signed URL can be opened in browser without Authorization header
+- PDF includes company header, employee info, attendance summary, earnings, deductions, employer contributions, and take home pay
+
+### Version 1.7.0 (2026-02-06)
+- Enhanced Payslip API with detailed salary breakdown
+- New fields in payslip response:
+  - `period.month_name`: Indonesian month name (e.g., "Januari")
+  - `employee`: Employee ID and name
+  - `salary`: Base salary, prorated salary, allowances breakdown, total allowances
+  - `attendance`: Payable days, total working days, classification breakdown
+  - `earnings`: Salary, allowances, additions with totals
+  - `deductions`: Enhanced with name, rate, and basis fields
+  - `summary`: Consolidated gross, deductions, and net amounts
+- Backward compatible: Original top-level fields (`gross_amount`, `deduction_amount`, `net_amount`, `attendance_count`, `additions`) preserved
 
 ### Version 1.6.0 (2026-02-06)
 - Added late status fields to attendance detail endpoint (`GET /attendance/{id}`)

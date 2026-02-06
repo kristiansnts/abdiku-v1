@@ -2,7 +2,7 @@
   "info": {
     "name": "Mobile Attendance API",
     "description": "REST API for mobile attendance application with device management, clock-in/out with geofence validation, and attendance correction requests.",
-    "version": "1.3.0",
+    "version": "1.8.0",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -632,7 +632,7 @@
                 }
               ]
             },
-            "description": "Get paginated list of employee's payslips (finalized payroll only)"
+            "description": "Get paginated list of employee's payslips (finalized payroll only).\n\nResponse includes:\n- Backward compatible fields: gross_amount, deduction_amount, net_amount, attendance_count, additions\n- Detailed salary: base_salary, prorated_base_salary, allowances breakdown, total_allowances\n- Attendance breakdown: payable_days, total_working_days, classification counts (hadir, terlambat, cuti, sakit, libur, absen)\n- Earnings: salary, allowances, additions with totals\n- Deductions: code, name, employee_amount, employer_amount, rate, basis\n- Summary: gross_amount, total_deductions, net_amount"
           },
           "response": []
         },
@@ -646,7 +646,21 @@
               "host": ["{{base_url}}"],
               "path": ["employee", "payslips", "1"]
             },
-            "description": "Get specific payslip detail by ID"
+            "description": "Get specific payslip detail by ID.\n\nResponse includes detailed salary breakdown:\n- period: year, month, month_name, period_start, period_end\n- employee: id, name\n- salary: base_salary, prorated_base_salary, allowances[], total_allowances\n- attendance: payable_days, total_working_days, breakdown (hadir, terlambat, cuti_dibayar, cuti_tidak_dibayar, sakit_dibayar, sakit_tidak_dibayar, libur_dibayar, libur_tidak_dibayar, absen)\n- earnings: salary, allowances, additions[], total_additions\n- deductions[]: code, name, employee_amount, employer_amount, rate, basis\n- summary: gross_amount, total_deductions, net_amount"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payslip Download URL",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/employee/payslips/1/download-url",
+              "host": ["{{base_url}}"],
+              "path": ["employee", "payslips", "1", "download-url"]
+            },
+            "description": "Get a temporary signed URL for downloading payslip PDF.\n\nThe returned URL is valid for 5 minutes and can be opened directly in a browser without authentication headers.\n\nResponse:\n- download_url: Signed URL to open in browser\n- expires_in: 300 (5 minutes)"
           },
           "response": []
         }
@@ -678,7 +692,7 @@
                 }
               ]
             },
-            "description": "Alias endpoint for /employee/payslips. Get paginated list of employee's payslips."
+            "description": "Alias endpoint for /employee/payslips. Get paginated list of employee's payslips with detailed salary breakdown."
           },
           "response": []
         },
@@ -692,7 +706,21 @@
               "host": ["{{base_url}}"],
               "path": ["payslips", "1"]
             },
-            "description": "Alias endpoint for /employee/payslips/{id}. Get specific payslip detail."
+            "description": "Alias endpoint for /employee/payslips/{id}. Get specific payslip detail with salary breakdown, attendance summary, earnings, and deductions."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payslip Download URL",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payslips/1/download-url",
+              "host": ["{{base_url}}"],
+              "path": ["payslips", "1", "download-url"]
+            },
+            "description": "Alias endpoint for /employee/payslips/{id}/download-url.\n\nGet a temporary signed URL for downloading payslip PDF. The returned URL is valid for 5 minutes and can be opened directly in a browser without authentication headers.\n\nResponse:\n- download_url: Signed URL to open in browser\n- expires_in: 300 (5 minutes)"
           },
           "response": []
         }

@@ -14,8 +14,11 @@ use App\Http\Controllers\Api\V1\Company\CompanyLocationController;
 use App\Http\Controllers\Api\V1\Employee\EmployeeDetailController;
 use App\Http\Controllers\Api\V1\Employee\EmployeePayslipController;
 use App\Http\Controllers\Api\V1\Employee\EmployeeSalaryController;
+use App\Http\Controllers\Api\V1\Employee\PayslipDownloadController;
+use App\Http\Controllers\Api\V1\Employee\PayslipDownloadUrlController;
 use App\Http\Controllers\Api\V1\HomeController;
 use App\Http\Controllers\Api\V1\PayslipController;
+use App\Http\Controllers\Api\V1\PayslipSignedDownloadController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -31,6 +34,11 @@ Route::prefix('v1')->group(function () {
         Route::post('login', [AuthController::class, 'login'])
             ->middleware('throttle:5,1');
     });
+
+    // Public signed download (no auth required, signature validated)
+    Route::get('payslips/{id}/download/{employee_id}', PayslipSignedDownloadController::class)
+        ->name('payslip.download.signed')
+        ->middleware('signed');
 
     // Authenticated routes
     Route::middleware(['auth:sanctum'])->group(function () {
@@ -71,6 +79,7 @@ Route::prefix('v1')->group(function () {
             // Payslips alias
             Route::get('payslips', [PayslipController::class, 'index']);
             Route::get('payslips/{id}', [PayslipController::class, 'show']);
+            Route::get('payslips/{id}/download-url', PayslipDownloadUrlController::class);
 
             Route::prefix('company')->group(function () {
                 Route::get('locations', CompanyLocationController::class);
@@ -81,6 +90,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('salary', EmployeeSalaryController::class);
                 Route::get('payslips', [EmployeePayslipController::class, 'index']);
                 Route::get('payslips/{id}', [EmployeePayslipController::class, 'show']);
+                Route::get('payslips/{id}/download-url', PayslipDownloadUrlController::class);
             });
         });
     });

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Payroll\Tables;
 
+use App\Application\Payroll\Services\PayslipPdfService;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -44,6 +46,22 @@ final class PayrollRowsTable
             ->defaultSort('payrollBatch.finalized_at', 'desc')
             ->actions([
                 ViewAction::make(),
+                Action::make('download')
+                    ->label('Unduh')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->visible(fn ($record) => $record->payrollBatch?->finalized_at !== null)
+                    ->action(function ($record) {
+                        $service = app(PayslipPdfService::class);
+                        $pdfContent = $service->generate($record);
+                        $filename = $service->generateFilename($record);
+
+                        return response()->streamDownload(
+                            fn () => print($pdfContent),
+                            $filename,
+                            ['Content-Type' => 'application/pdf']
+                        );
+                    }),
             ]);
     }
 }

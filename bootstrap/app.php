@@ -2,6 +2,7 @@
 
 use App\Exceptions\Api\AttendanceException;
 use App\Exceptions\Api\DeviceException;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +21,19 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Handle authentication errors for API routes
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'UNAUTHENTICATED',
+                        'message' => 'Token tidak valid atau sudah kedaluwarsa.',
+                    ],
+                ], 401);
+            }
+        });
+
         $exceptions->render(function (AttendanceException $e, Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
