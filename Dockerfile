@@ -14,14 +14,16 @@ COPY tailwind.config.js* ./
 RUN npm run build
 
 # Stage 2: Install PHP dependencies
-FROM php:8.3-cli-alpine AS composer
+FROM php:8.4-cli-alpine AS composer
 
 # Install composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Install required extensions for composer install
-RUN apk add --no-cache icu-dev \
-    && docker-php-ext-install intl
+RUN apk add --no-cache \
+    icu-dev \
+    libzip-dev \
+    && docker-php-ext-install intl zip
 
 WORKDIR /app
 
@@ -32,7 +34,7 @@ COPY . .
 RUN composer dump-autoload --optimize
 
 # Stage 3: Production image with FrankenPHP (Octane)
-FROM dunglas/frankenphp:1-php8.3-alpine
+FROM dunglas/frankenphp:1-php8.4-alpine
 
 # Install PHP extensions
 RUN install-php-extensions \
