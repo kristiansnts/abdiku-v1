@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "Starting Laravel application..."
+echo "Starting Laravel application v1.0.1..."
 
 # Wait for database to be ready (optional, adjust timeout as needed)
 echo "Waiting for database connection..."
