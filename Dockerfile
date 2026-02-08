@@ -1,19 +1,4 @@
-# Stage 1: Build frontend assets
-FROM node:20-alpine AS frontend
-
-WORKDIR /app
-
-COPY package.json package-lock.json* ./
-RUN npm ci
-
-COPY resources/ ./resources/
-COPY vite.config.js ./
-COPY postcss.config.js* ./
-COPY tailwind.config.js* ./
-
-RUN npm run build
-
-# Stage 2: Install PHP dependencies
+# Stage 1: Install PHP dependencies
 FROM php:8.4-cli-alpine AS composer
 
 # Install composer
@@ -32,6 +17,31 @@ RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 
 COPY . .
 RUN composer dump-autoload --optimize
+
+# Stage 2: Build frontend assets (after composer so we can copy pagination views)
+FROM node:20-alpine AS frontend
+
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Copy all files needed for Tailwind CSS v4 to scan
+COPY resources/ ./resources/
+COPY vite.config.js ./
+COPY postcss.config.js* ./
+COPY tailwind.config.js* ./
+
+# Copy Blade templates for Tailwind to scan (required by @source directives)
+COPY app/ ./app/
+
+# Copy pagination views from composer stage for Tailwind @source directive
+COPY --from=composer /app/vendor/laravel/framework/src/Illuminate/Pagination/resources/views ./vendor/laravel/framework/src/Illuminate/Pagination/resources/views
+
+# Create empty storage views directory (generated at runtime)
+RUN mkdir -p storage/framework/views
+
+RUN npm run build
 
 # Stage 3: Production image with FrankenPHP (Octane)
 FROM dunglas/frankenphp:1-php8.4-alpine
