@@ -7,15 +7,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: read
     steps:
-      - uses: actions/checkout@v4
       - name: Deploy to aaPanel
-        uses: tunnaduong/aapanel-deploy-action@main
-        with:
-          panel_url: https://dashboard.deskbranch.site
-          webhook_key: Yn5gO1WKwTSzwhB31oNf6CRZ0OsF2FusqkgYlvFIyP2ZEJmF
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl --location --fail --silent --show-error \
+            -X POST "${{ secrets.AAPANEL_URL }}/hook?access_key=${{ secrets.AAPANEL_WEBHOOK_KEY }}"
