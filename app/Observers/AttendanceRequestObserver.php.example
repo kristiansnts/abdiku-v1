@@ -1,0 +1,95 @@
+<?php
+
+namespace App\Observers;
+
+use App\Domain\Attendance\Models\AttendanceRequest;
+use App\Models\User;
+use Filament\Notifications\Notification;
+use Filament\Notifications\Actions\Action;
+
+/**
+ * Example Observer demonstrating database notifications with AttendanceRequest
+ *
+ * To use this observer, rename to AttendanceRequestObserver.php and register it in AppServiceProvider:
+ *
+ * use App\Domain\Attendance\Models\AttendanceRequest;
+ * use App\Observers\AttendanceRequestObserver;
+ *
+ * public function boot(): void
+ * {
+ *     AttendanceRequest::observe(AttendanceRequestObserver::class);
+ * }
+ */
+class AttendanceRequestObserver
+{
+    /**
+     * Handle the AttendanceRequest "created" event.
+     */
+    public function created(AttendanceRequest $attendanceRequest): void
+    {
+        // Notify admins and managers about new attendance request
+        $admins = User::role(['admin', 'super_admin'])
+            ->where('company_id', $attendanceRequest->company_id)
+            ->get();
+
+        foreach ($admins as $admin) {
+            Notification::make()
+                ->title('New Attendance Request')
+                ->body("A new attendance request has been submitted by {$attendanceRequest->employee->name}")
+                ->icon('heroicon-o-document-text')
+                ->iconColor('info')
+                ->actions([
+                    Action::make('view')
+                        ->button()
+                        ->url(route('filament.admin.resources.attendance-requests.view', ['record' => $attendanceRequest]))
+                        ->markAsRead(),
+                    Action::make('dismiss')
+                        ->link()
+                        ->markAsRead()
+                ])
+                ->sendToDatabase($admin);
+        }
+    }
+
+    /**
+     * Handle the AttendanceRequest "updated" event.
+     */
+    public function updated(AttendanceRequest $attendanceRequest): void
+    {
+        // If status changed to approved or rejected, notify the employee
+        if ($attendanceRequest->isDirty('status')) {
+            $employee = $attendanceRequest->employee;
+            $user = $employee->user;
+
+            if (!$user) {
+                return;
+            }
+
+            $status = $attendanceRequest->status;
+            $isApproved = $status === 'approved';
+
+            Notification::make()
+                ->title('Attendance Request ' . ucfirst($status))
+                ->body("Your attendance request has been {$status}.")
+                ->icon($isApproved ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
+                ->iconColor($isApproved ? 'success' : 'danger')
+                ->status($isApproved ? 'success' : 'warning')
+                ->actions([
+                    Action::make('view')
+                        ->button()
+                        ->url(route('filament.admin.resources.attendance-requests.view', ['record' => $attendanceRequest]))
+                        ->markAsRead(),
+                ])
+                ->sendToDatabase($user);
+        }
+    }
+
+    /**
+     * Handle the AttendanceRequest "deleted" event.
+     */
+    public function deleted(AttendanceRequest $attendanceRequest): void
+    {
+        // Optionally notify relevant users about deletion
+        // This is just an example - adjust based on your business logic
+    }
+}
