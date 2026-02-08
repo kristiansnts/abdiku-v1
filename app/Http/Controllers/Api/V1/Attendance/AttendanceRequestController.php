@@ -8,6 +8,7 @@ use App\Domain\Attendance\Enums\AttendanceRequestType;
 use App\Domain\Attendance\Enums\AttendanceStatus;
 use App\Domain\Attendance\Models\AttendanceRaw;
 use App\Domain\Attendance\Models\AttendanceRequest;
+use App\Events\AttendanceRequestSubmitted;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Attendance\AttendanceCorrectionRequest;
 use App\Http\Resources\Api\V1\AttendanceRequestResource;
@@ -85,6 +86,12 @@ class AttendanceRequestController extends Controller
             'status' => AttendanceStatus::PENDING,
             'requested_at' => now(),
         ]);
+
+        // Load relationships before dispatching event
+        $attendanceRequest->load(['employee', 'attendanceRaw']);
+
+        // Dispatch event for notification
+        event(new AttendanceRequestSubmitted($attendanceRequest));
 
         return response()->json([
             'success' => true,

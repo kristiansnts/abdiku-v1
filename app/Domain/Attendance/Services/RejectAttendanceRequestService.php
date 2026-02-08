@@ -6,6 +6,7 @@ namespace App\Domain\Attendance\Services;
 
 use App\Domain\Attendance\Enums\AttendanceStatus;
 use App\Domain\Attendance\Models\AttendanceRequest;
+use App\Events\AttendanceRequestReviewed;
 use App\Models\User;
 
 class RejectAttendanceRequestService
@@ -28,6 +29,11 @@ class RejectAttendanceRequestService
             'review_note' => $reviewNote,
         ]);
 
-        return $request->fresh();
+        $request = $request->fresh();
+
+        // Dispatch event for notification
+        event(new AttendanceRequestReviewed($request, false, $actor));
+
+        return $request;
     }
 }

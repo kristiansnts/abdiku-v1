@@ -16,6 +16,8 @@ use App\Domain\Payroll\Enums\PayrollState;
 use App\Domain\Payroll\Exceptions\InvalidPayrollStateException;
 use App\Domain\Payroll\Exceptions\UnauthorizedPayrollActionException;
 use App\Domain\Payroll\Models\PayrollPeriod;
+use App\Events\EmployeeAbsentDetected;
+use App\Events\PayrollPrepared;
 use App\Models\Employee;
 use App\Models\User;
 use Carbon\CarbonPeriod;
@@ -28,9 +30,13 @@ class PreparePayrollService
         $this->validateState($period);
         $this->validateRole($actor);
 
-        DB::transaction(function () use ($period) {
+        DB::transaction(function () use ($period, $actor) {
             $this->generateDecisions($period);
             $this->lockAttendanceRecords($period);
+
+            // Dispatch event for notification
+            $employeeCount = Employee::where('company_id', $period->company_id)->count();
+            event(new PayrollPrepared($period, $actor, $employeeCount));
         });
     }
 
@@ -102,6 +108,11 @@ class PreparePayrollService
                 'decided_at' => now(),
             ]
         );
+
+        // Dispatch event for absence detection
+        if ($classification === AttendanceClassification::ABSENT) {
+            event(new EmployeeAbsentDetected($employee, $date, $employee->company));
+        }
     }
 
     private function determineClassification(

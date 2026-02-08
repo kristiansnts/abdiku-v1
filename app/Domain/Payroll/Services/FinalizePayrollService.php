@@ -11,6 +11,8 @@ use App\Domain\Payroll\Models\OverrideRequest;
 use App\Domain\Payroll\Models\PayrollBatch;
 use App\Domain\Payroll\Models\PayrollPeriod;
 use App\Domain\Payroll\Models\PayrollRow;
+use App\Events\PayrollFinalized;
+use App\Events\PayslipAvailable;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -30,6 +32,15 @@ class FinalizePayrollService
             $batch = $this->createBatch($period, $actor);
             $this->createRows($period, $batch);
             $this->freezePeriod($period, $actor);
+
+            // Dispatch event for individual payslips
+            $rows = PayrollRow::where('payroll_batch_id', $batch->id)->with('employee')->get();
+            foreach ($rows as $row) {
+                event(new PayslipAvailable($row, $row->employee));
+            }
+
+            // Dispatch event for payroll finalization
+            event(new PayrollFinalized($period, $batch, $actor));
 
             return $batch;
         });

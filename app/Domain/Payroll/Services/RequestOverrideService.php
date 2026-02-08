@@ -10,6 +10,7 @@ use App\Domain\Payroll\Enums\PayrollState;
 use App\Domain\Payroll\Exceptions\InvalidPayrollStateException;
 use App\Domain\Payroll\Exceptions\UnauthorizedPayrollActionException;
 use App\Domain\Payroll\Models\OverrideRequest;
+use App\Events\AttendanceOverrideRequiresOwner;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -25,7 +26,7 @@ class RequestOverrideService
         $this->validateRole($actor);
 
         return DB::transaction(function () use ($decision, $proposedClassification, $reason, $actor) {
-            return OverrideRequest::create([
+            $overrideRequest = OverrideRequest::create([
                 'attendance_decision_id' => $decision->id,
                 'old_classification' => $decision->classification,
                 'proposed_classification' => $proposedClassification,
@@ -34,6 +35,11 @@ class RequestOverrideService
                 'requested_at' => now(),
                 'status' => 'PENDING',
             ]);
+
+            // Dispatch event for notification
+            event(new AttendanceOverrideRequiresOwner($overrideRequest, $actor));
+
+            return $overrideRequest;
         });
     }
 

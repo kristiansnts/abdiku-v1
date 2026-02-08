@@ -11,6 +11,7 @@ use App\Domain\Attendance\Enums\TimeCorrectionSource;
 use App\Domain\Attendance\Models\AttendanceRaw;
 use App\Domain\Attendance\Models\AttendanceRequest;
 use App\Domain\Attendance\Models\AttendanceTimeCorrection;
+use App\Events\AttendanceRequestReviewed;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -41,7 +42,12 @@ class ApproveAttendanceRequestService
                 'time_correction_id' => $correction->id,
             ]);
 
-            return $request->fresh();
+            $request = $request->fresh();
+
+            // Dispatch event for notification
+            event(new AttendanceRequestReviewed($request, true, $actor));
+
+            return $request;
         });
     }
 
