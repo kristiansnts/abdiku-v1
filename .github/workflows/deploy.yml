@@ -10,10 +10,9 @@ jobs:
     steps:
       - name: Deploy to aaPanel
         run: |
-          echo "URL length: ${#AAPANEL_URL}"
-          echo "Key length: ${#AAPANEL_WEBHOOK_KEY}"
-          curl --location --fail --silent --show-error \
+          curl --location --verbose \
             -X POST "${AAPANEL_URL}/hook?access_key=${AAPANEL_WEBHOOK_KEY}"
         env:
           AAPANEL_URL: ${{ secrets.AAPANEL_URL }}
           AAPANEL_WEBHOOK_KEY: ${{ secrets.AAPANEL_WEBHOOK_KEY }}
+
