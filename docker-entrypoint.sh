@@ -26,4 +26,4 @@ echo "Generating Filament assets..."
 php artisan filament:assets
 
 echo "Starting Octane server..."
-exec php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080
+exec php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000
