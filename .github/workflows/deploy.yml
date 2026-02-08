@@ -16,6 +16,6 @@ jobs:
         uses: tunnaduong/aapanel-deploy-action@main
         with:
           panel_url: https://dashboard.deskbranch.site
-          webhook_key: ${{ secrets.AAPANEL_WEBHOOK_KEY }}
+          webhook_key: Yn5gO1WKwTSzwhB31oNf6CRZ0OsF2FusqkgYlvFIyP2ZEJmF
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
