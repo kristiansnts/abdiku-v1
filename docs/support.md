@@ -957,6 +957,73 @@ php artisan filament:assets
 php artisan optimize:clear
 ```
 
+#### 6. **Notifications not appearing for HR users**
+
+**Cause**: Filament's `Notification::make()->sendToDatabase()` doesn't persist notifications properly under Laravel Octane due to how Filament handles database notifications in long-running processes.
+
+**Symptoms**:
+- Event is dispatched successfully
+- Listener executes without errors
+- No notifications appear in the database
+- No errors in logs
+
+**Solution**: Use Laravel's native notification system instead of Filament's notification builder.
+
+```php
+// ❌ WRONG: Filament notifications don't persist under Octane
+use Filament\Notifications\Notification;
+
+Notification::make()
+    ->title('New Request')
+    ->body('Description')
+    ->sendToDatabase($user);
+
+// ✅ CORRECT: Use Laravel's native notification system
+// 1. Create a notification class
+php artisan make:notification AttendanceRequestSubmittedNotification
+
+// 2. Implement the notification
+namespace App\Notifications;
+
+use Illuminate\Notifications\Notification;
+
+class AttendanceRequestSubmittedNotification extends Notification
+{
+    public function via($notifiable): array
+    {
+        return ['database'];
+    }
+
+    public function toDatabase($notifiable): array
+    {
+        return [
+            'title' => 'New Request',
+            'body' => 'Description',
+            // ... other data
+        ];
+    }
+}
+
+// 3. Send the notification
+$user->notify(new AttendanceRequestSubmittedNotification($request));
+```
+
+**Why this happens**:
+- Filament notifications are designed for the admin panel UI
+- They use a different storage mechanism optimized for real-time updates
+- Under Octane's long-running process, the database connection state may not persist correctly
+- Laravel's native notifications use a more robust database persistence mechanism
+
+**Testing the fix**:
+```bash
+php artisan tinker
+>>> $user = \App\Models\User::find(3);
+>>> $user->notify(new \App\Notifications\AttendanceRequestSubmittedNotification($request));
+>>> \Illuminate\Notifications\DatabaseNotification::where('notifiable_id', 3)->count();
+# Should return 1
+```
+
+
 ---
 
 ## File Structure Reference

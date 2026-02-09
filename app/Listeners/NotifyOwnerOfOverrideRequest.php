@@ -3,10 +3,8 @@
 namespace App\Listeners;
 
 use App\Events\AttendanceOverrideRequiresOwner;
-use App\Helpers\FilamentUrlHelper;
 use App\Helpers\NotificationRecipientHelper;
-use Filament\Notifications\Actions\Action;
-use Filament\Notifications\Notification;
+use App\Notifications\OverrideRequestNotification;
 
 class NotifyOwnerOfOverrideRequest
 {
@@ -19,24 +17,7 @@ class NotifyOwnerOfOverrideRequest
         $ownerUsers = NotificationRecipientHelper::getOwnerUsers($companyId);
 
         foreach ($ownerUsers as $owner) {
-            Notification::make()
-                ->title('Persetujuan Override Diperlukan')
-                ->body("HR ({$requestedBy->name}) meminta persetujuan override untuk {$overrideRequest->attendanceDecision->employee->name}")
-                ->icon('heroicon-o-exclamation-triangle')
-                ->iconColor('warning')
-                ->status('warning')
-                ->actions([
-                    Action::make('view')
-                        ->label('Tinjau')
-                        ->button()
-                        ->url(FilamentUrlHelper::overrideRequestUrl($overrideRequest))
-                        ->markAsRead(),
-                    Action::make('dismiss')
-                        ->label('Nanti')
-                        ->link()
-                        ->markAsRead()
-                ])
-                ->sendToDatabase($owner);
+            $owner->notify(new OverrideRequestNotification($overrideRequest, $requestedBy));
         }
     }
 }

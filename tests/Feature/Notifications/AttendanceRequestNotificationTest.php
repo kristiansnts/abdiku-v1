@@ -10,8 +10,10 @@ use App\Domain\Attendance\Services\RejectAttendanceRequestService;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
+use App\Notifications\AttendanceRequestSubmittedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 use Tests\Traits\CreatesRoles;
 
@@ -167,5 +169,124 @@ class AttendanceRequestNotificationTest extends TestCase
         $this->assertNotNull($notification);
         $this->assertArrayHasKey('actions', $notification->data);
         $this->assertNotEmpty($notification->data['actions']);
+    }
+
+    /** @test */
+    public function notification_has_filament_compatible_format()
+    {
+        // Act: Submit attendance request
+        $this->actingAs($this->employeeUser, 'sanctum')
+            ->postJson('/api/v1/attendance/requests', [
+                'request_type' => AttendanceRequestType::CORRECTION->value,
+                'requested_clock_in_at' => now()->format('Y-m-d H:i:s'),
+                'requested_clock_out_at' => now()->addHours(8)->format('Y-m-d H:i:s'),
+                'reason' => 'Test Filament Format',
+            ]);
+
+        // Assert: Notification has Filament-compatible format
+        $notification = DatabaseNotification::where('notifiable_id', $this->hrUser->id)->first();
+        $this->assertNotNull($notification);
+
+        // Check required Filament fields
+        $this->assertEquals('filament', $notification->data['format']);
+        $this->assertArrayHasKey('title', $notification->data);
+        $this->assertArrayHasKey('body', $notification->data);
+        $this->assertArrayHasKey('icon', $notification->data);
+        $this->assertArrayHasKey('iconColor', $notification->data);
+        $this->assertArrayHasKey('duration', $notification->data);
+        $this->assertArrayHasKey('view', $notification->data);
+        $this->assertArrayHasKey('viewData', $notification->data);
+        $this->assertArrayHasKey('actions', $notification->data);
+
+        // Verify values
+        $this->assertEquals('persistent', $notification->data['duration']);
+        $this->assertEquals('filament-notifications::notification', $notification->data['view']);
+        $this->assertEquals('heroicon-o-document-text', $notification->data['icon']);
+        $this->assertEquals('info', $notification->data['iconColor']);
+    }
+
+    /** @test */
+    public function notification_actions_have_correct_structure()
+    {
+        // Act: Submit attendance request
+        $this->actingAs($this->employeeUser, 'sanctum')
+            ->postJson('/api/v1/attendance/requests', [
+                'request_type' => AttendanceRequestType::CORRECTION->value,
+                'requested_clock_in_at' => now()->format('Y-m-d H:i:s'),
+                'requested_clock_out_at' => now()->addHours(8)->format('Y-m-d H:i:s'),
+                'reason' => 'Test Actions',
+            ]);
+
+        // Assert: Actions have correct Filament structure
+        $notification = DatabaseNotification::where('notifiable_id', $this->hrUser->id)->first();
+        $this->assertNotNull($notification);
+        $this->assertIsArray($notification->data['actions']);
+        $this->assertNotEmpty($notification->data['actions']);
+
+        $action = $notification->data['actions'][0];
+
+        // Check required action fields
+        $this->assertArrayHasKey('name', $action);
+        $this->assertArrayHasKey('label', $action);
+        $this->assertArrayHasKey('url', $action);
+        $this->assertArrayHasKey('view', $action);
+        $this->assertArrayHasKey('shouldMarkAsRead', $action);
+        $this->assertArrayHasKey('color', $action);
+
+        // Verify action values
+        $this->assertEquals('view', $action['name']);
+        $this->assertEquals('Lihat', $action['label']);
+        $this->assertTrue($action['shouldMarkAsRead']);
+        $this->assertEquals('filament-notifications::actions.button-action', $action['view']);
+    }
+
+    /** @test */
+    public function notification_persists_correctly_under_octane()
+    {
+        // This test verifies that notifications are persisted to database
+        // even when running under Laravel Octane
+
+        // Act: Submit attendance request
+        $response = $this->actingAs($this->employeeUser, 'sanctum')
+            ->postJson('/api/v1/attendance/requests', [
+                'request_type' => AttendanceRequestType::CORRECTION->value,
+                'requested_clock_in_at' => now()->format('Y-m-d H:i:s'),
+                'requested_clock_out_at' => now()->addHours(8)->format('Y-m-d H:i:s'),
+                'reason' => 'Octane Test',
+            ]);
+
+        $response->assertStatus(201);
+
+        // Assert: Notification was persisted to database
+        $notificationCount = DatabaseNotification::where('notifiable_id', $this->hrUser->id)->count();
+        $this->assertEquals(1, $notificationCount);
+
+        // Verify notification type is correct
+        $notification = DatabaseNotification::where('notifiable_id', $this->hrUser->id)->first();
+        $this->assertEquals(AttendanceRequestSubmittedNotification::class, $notification->type);
+    }
+
+    /** @test */
+    public function notification_can_be_sent_directly_via_notification_class()
+    {
+        // Arrange: Create attendance request
+        $request = AttendanceRequest::factory()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+        ]);
+
+        // Act: Send notification directly
+        $this->hrUser->notify(new AttendanceRequestSubmittedNotification($request));
+
+        // Assert: Notification was created
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id' => $this->hrUser->id,
+            'notifiable_type' => User::class,
+            'type' => AttendanceRequestSubmittedNotification::class,
+        ]);
+
+        $notification = DatabaseNotification::where('notifiable_id', $this->hrUser->id)->first();
+        $this->assertNotNull($notification);
+        $this->assertEquals('filament', $notification->data['format']);
     }
 }

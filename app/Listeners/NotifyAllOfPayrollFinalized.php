@@ -3,10 +3,9 @@
 namespace App\Listeners;
 
 use App\Events\PayrollFinalized;
-use App\Helpers\FilamentUrlHelper;
 use App\Helpers\NotificationRecipientHelper;
-use Filament\Notifications\Actions\Action;
-use Filament\Notifications\Notification;
+use App\Notifications\PayrollFinalizedEmployeeNotification;
+use App\Notifications\PayrollFinalizedStakeholderNotification;
 
 class NotifyAllOfPayrollFinalized
 {
@@ -18,32 +17,13 @@ class NotifyAllOfPayrollFinalized
         // Notify stakeholders (HR + owners)
         $stakeholders = NotificationRecipientHelper::getStakeholders($period->company_id);
         foreach ($stakeholders as $stakeholder) {
-            Notification::make()
-                ->title('Penggajian Berhasil Difinalisasi')
-                ->body("Penggajian untuk periode {$period->period_start} - {$period->period_end} telah difinalisasi.")
-                ->icon('heroicon-o-banknotes')
-                ->iconColor('success')
-                ->status('success')
-                ->actions([
-                    Action::make('view')
-                        ->label('Lihat Batch')
-                        ->button()
-                        ->url(FilamentUrlHelper::payrollBatchUrl($batch))
-                        ->markAsRead(),
-                ])
-                ->sendToDatabase($stakeholder);
+            $stakeholder->notify(new PayrollFinalizedStakeholderNotification($period, $batch));
         }
 
         // Notify all employees
         $employees = NotificationRecipientHelper::getAllEmployeeUsers($period->company_id);
         foreach ($employees as $employee) {
-            Notification::make()
-                ->title('Slip Gaji Tersedia')
-                ->body("Penggajian untuk periode {$period->period_start} - {$period->period_end} telah difinalisasi. Cek slip gaji Anda!")
-                ->icon('heroicon-o-banknotes')
-                ->iconColor('success')
-                ->status('success')
-                ->sendToDatabase($employee);
+            $employee->notify(new PayrollFinalizedEmployeeNotification($period));
         }
     }
 }

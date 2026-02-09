@@ -19,10 +19,11 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
+use Tests\Traits\CreatesRoles;
 
 class MobileAttendanceApiTest extends TestCase
 {
-    use RefreshDatabase, WithFaker;
+    use RefreshDatabase, WithFaker, CreatesRoles;
 
     private User $user;
     private Employee $employee;
@@ -34,13 +35,16 @@ class MobileAttendanceApiTest extends TestCase
     {
         parent::setUp();
 
+        // Set up roles for notification system
+        $this->setUpRoles();
+
         $this->company = Company::factory()->create();
         $this->user = User::factory()->create(['company_id' => $this->company->id]);
         $this->employee = Employee::factory()->create([
             'user_id' => $this->user->id,
             'company_id' => $this->company->id
         ]);
-        
+
         $this->location = CompanyLocation::factory()->create([
             'company_id' => $this->company->id,
             'latitude' => -6.2087,
@@ -315,7 +319,7 @@ class MobileAttendanceApiTest extends TestCase
         $response->assertStatus(200);
 
         $data = $response->json('data');
-        
+
         // The attendance logic might be working differently than expected
         // Let's check what the actual response looks like and adjust accordingly
         if ($data['can_clock_in'] === true) {
@@ -425,7 +429,7 @@ class MobileAttendanceApiTest extends TestCase
         $data = $response->json('data');
         $this->assertEquals('PENDING', $data['status']);
         $this->assertEquals('MOBILE', $data['source']);
-        
+
         // The location might be assigned even for out-of-geofence check-ins
         // as the system might assign the nearest location regardless
         $this->assertArrayHasKey('location', $data);
@@ -1415,7 +1419,7 @@ class MobileAttendanceApiTest extends TestCase
                     'device' => ['device_id' => 'test', 'model' => 'test', 'os' => 'test', 'app_version' => '1.0.0']
                 ]
             ]);
-            
+
             $response->assertStatus(403);
         }
     }
