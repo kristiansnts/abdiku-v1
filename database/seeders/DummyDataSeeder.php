@@ -146,10 +146,13 @@ class DummyDataSeeder extends Seeder
         $this->command->info('Creating payroll period...');
 
         // Create payroll period (current month)
+        $currentDate = now();
         $period = PayrollPeriod::create([
             'company_id' => $company->id,
-            'period_start' => now()->startOfMonth(),
-            'period_end' => now()->endOfMonth(),
+            'period_start' => $currentDate->copy()->startOfMonth(),
+            'period_end' => $currentDate->copy()->endOfMonth(),
+            'year' => (int) $currentDate->format('Y'),
+            'month' => (int) $currentDate->format('m'),
             'state' => PayrollState::DRAFT,
             'rule_version' => 'v1.0',
         ]);
