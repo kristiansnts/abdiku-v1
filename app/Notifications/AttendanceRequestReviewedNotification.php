@@ -2,15 +2,17 @@
 
 namespace App\Notifications;
 
+use App\Channels\FcmChannel;
 use App\Domain\Attendance\Models\AttendanceRequest;
 use App\Helpers\FilamentUrlHelper;
 use App\Models\User;
+use App\Notifications\Concerns\HasFcmSupport;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 class AttendanceRequestReviewedNotification extends Notification
 {
-    use Queueable;
+    use Queueable, HasFcmSupport;
 
     public function __construct(
         public AttendanceRequest $attendanceRequest,
@@ -21,7 +23,14 @@ class AttendanceRequestReviewedNotification extends Notification
 
     public function via($notifiable): array
     {
-        return ['database'];
+        $channels = ['database'];
+
+        // Send FCM to employee role users (mobile app users)
+        if ($notifiable->hasRole('employee') || $notifiable->hasRole('hr') || $notifiable->hasRole('owner')) {
+            $channels[] = FcmChannel::class;
+        }
+
+        return $channels;
     }
 
     public function toDatabase($notifiable): array
@@ -74,5 +83,20 @@ class AttendanceRequestReviewedNotification extends Notification
     public function toArray($notifiable): array
     {
         return $this->toDatabase($notifiable);
+    }
+
+    protected function getFcmType(): string
+    {
+        return 'attendance_request_reviewed';
+    }
+
+    protected function getRelatedId(): ?string
+    {
+        return (string) $this->attendanceRequest->id;
+    }
+
+    protected function getRelatedType(): ?string
+    {
+        return 'attendance_request';
     }
 }

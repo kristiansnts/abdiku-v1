@@ -2,14 +2,16 @@
 
 namespace App\Notifications;
 
+use App\Channels\FcmChannel;
 use App\Domain\Payroll\Models\PayrollRow;
 use App\Helpers\FilamentUrlHelper;
+use App\Notifications\Concerns\HasFcmSupport;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 class PayslipAvailableNotification extends Notification
 {
-    use Queueable;
+    use Queueable, HasFcmSupport;
 
     public function __construct(
         public PayrollRow $payrollRow
@@ -18,7 +20,14 @@ class PayslipAvailableNotification extends Notification
 
     public function via($notifiable): array
     {
-        return ['database'];
+        $channels = ['database'];
+
+        // Send FCM to employee role users (mobile app users)
+        if ($notifiable->hasRole('employee') || $notifiable->hasRole('hr') || $notifiable->hasRole('owner')) {
+            $channels[] = FcmChannel::class;
+        }
+
+        return $channels;
     }
 
     public function toDatabase($notifiable): array
@@ -69,5 +78,20 @@ class PayslipAvailableNotification extends Notification
     public function toArray($notifiable): array
     {
         return $this->toDatabase($notifiable);
+    }
+
+    protected function getFcmType(): string
+    {
+        return 'payslip_available';
+    }
+
+    protected function getRelatedId(): ?string
+    {
+        return (string) $this->payrollRow->id;
+    }
+
+    protected function getRelatedType(): ?string
+    {
+        return 'payroll_row';
     }
 }

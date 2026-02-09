@@ -19,6 +19,8 @@ class UserDevice extends Model
         'device_model',
         'device_os',
         'app_version',
+        'fcm_token',
+        'fcm_token_updated_at',
         'is_active',
         'is_blocked',
         'block_reason',
@@ -33,6 +35,7 @@ class UserDevice extends Model
         'is_blocked' => 'boolean',
         'blocked_at' => 'datetime',
         'last_login_at' => 'datetime',
+        'fcm_token_updated_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -94,6 +97,40 @@ class UserDevice extends Model
         $this->update([
             'last_login_at' => now(),
             'last_ip_address' => $ipAddress,
+        ]);
+    }
+
+    /**
+     * Update FCM token for this device
+     */
+    public function updateFcmToken(?string $token): void
+    {
+        if ($token === $this->fcm_token) {
+            return; // No change
+        }
+
+        $this->update([
+            'fcm_token' => $token,
+            'fcm_token_updated_at' => $token ? now() : null,
+        ]);
+    }
+
+    /**
+     * Check if device has a valid FCM token
+     */
+    public function hasFcmToken(): bool
+    {
+        return !empty($this->fcm_token);
+    }
+
+    /**
+     * Clear FCM token from this device
+     */
+    public function clearFcmToken(): void
+    {
+        $this->update([
+            'fcm_token' => null,
+            'fcm_token_updated_at' => null,
         ]);
     }
 }

@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\V1\Employee\EmployeeSalaryController;
 use App\Http\Controllers\Api\V1\Employee\PayslipDownloadController;
 use App\Http\Controllers\Api\V1\Employee\PayslipDownloadUrlController;
 use App\Http\Controllers\Api\V1\HomeController;
+use App\Http\Controllers\Api\V1\Notification\FcmTokenController;
+use App\Http\Controllers\Api\V1\Notification\NotificationController;
 use App\Http\Controllers\Api\V1\PayslipController;
 use App\Http\Controllers\Api\V1\PayslipSignedDownloadController;
 use Illuminate\Support\Facades\Route;
@@ -94,6 +96,17 @@ Route::prefix('v1')->group(function () {
                 Route::get('payslips/{id}/download', PayslipDownloadController::class);
                 Route::get('payslips/{id}/download-url', PayslipDownloadUrlController::class);
             });
+        });
+
+        // Notifications (all authenticated users)
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [NotificationController::class, 'index']);
+            Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+            Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
+            Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
+
+            Route::post('/fcm-token', [FcmTokenController::class, 'update']);
+            Route::delete('/fcm-token', [FcmTokenController::class, 'destroy']);
         });
     });
 });

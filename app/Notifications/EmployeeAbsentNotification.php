@@ -2,13 +2,15 @@
 
 namespace App\Notifications;
 
+use App\Channels\FcmChannel;
 use App\Models\Employee;
+use App\Notifications\Concerns\HasFcmSupport;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 class EmployeeAbsentNotification extends Notification
 {
-    use Queueable;
+    use Queueable, HasFcmSupport;
 
     public function __construct(
         public Employee $employee,
@@ -18,7 +20,14 @@ class EmployeeAbsentNotification extends Notification
 
     public function via($notifiable): array
     {
-        return ['database'];
+        $channels = ['database'];
+
+        // Send FCM to employee role users (mobile app users)
+        if ($notifiable->hasRole('employee') || $notifiable->hasRole('hr') || $notifiable->hasRole('owner')) {
+            $channels[] = FcmChannel::class;
+        }
+
+        return $channels;
     }
 
     public function toDatabase($notifiable): array
@@ -41,5 +50,20 @@ class EmployeeAbsentNotification extends Notification
     public function toArray($notifiable): array
     {
         return $this->toDatabase($notifiable);
+    }
+
+    protected function getFcmType(): string
+    {
+        return 'employee_absent';
+    }
+
+    protected function getRelatedId(): ?string
+    {
+        return (string) $this->employee->id;
+    }
+
+    protected function getRelatedType(): ?string
+    {
+        return 'employee';
     }
 }
