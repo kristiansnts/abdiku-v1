@@ -28,17 +28,20 @@ final class EmployeeForm
                     ->disabled(fn() => !auth()->user()?->hasRole('owner'))
                     ->native(false),
 
-                Select::make('user_id')
-                    ->label('Akun Pengguna (Opsional)')
-                    ->relationship(
-                        'user',
-                        'name',
-                        fn($query) => $query->where('company_id', auth()->user()?->company_id)
-                    )
-                    ->searchable()
-                    ->preload()
-                    ->native(false)
-                    ->helperText('Hubungkan dengan akun pengguna untuk akses login'),
+                TextInput::make('email')
+                    ->label('Email')
+                    ->email()
+                    ->required()
+                    ->maxLength(255)
+                    ->unique('users', 'email')
+                    ->dehydrated(false)
+                    ->helperText('Digunakan untuk login dan pengiriman undangan'),
+
+                TextInput::make('phone')
+                    ->label('Nomor HP')
+                    ->tel()
+                    ->nullable()
+                    ->maxLength(20),
 
                 Select::make('department_id')
                     ->label('Departemen')

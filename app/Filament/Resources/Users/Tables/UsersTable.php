@@ -8,6 +8,7 @@ use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
+use STS\FilamentImpersonate\Impersonate;
 use Filament\Tables\Table;
 
 final class UsersTable
@@ -43,6 +44,7 @@ final class UsersTable
             ])
             ->actions([
                 EditAction::make(),
+                Impersonate::make(),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
