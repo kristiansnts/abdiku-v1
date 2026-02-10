@@ -51,10 +51,10 @@
                     
                     if (location.radius) {
                         new google.maps.Circle({
-                            strokeColor: '#f59e0b',
+                            strokeColor: '#4043e9ff',
                             strokeOpacity: 0.8,
                             strokeWeight: 2,
-                            fillColor: '#f59e0b',
+                            fillColor: '#4074e9',
                             fillOpacity: 0.2,
                             map: this.map,
                             center: position,

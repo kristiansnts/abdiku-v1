@@ -30,9 +30,11 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->brandLogo(asset('images/payrollkami-logo.png'))
+            ->brandLogoHeight('4rem')
             ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Blue,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
@@ -87,20 +89,20 @@ class AdminPanelProvider extends PanelProvider
                         [x-data*="NotificationsComponent"] button {
                             position: relative;
                             padding: 0.5rem !important;
-                            background-color: rgba(251, 191, 36, 0.1) !important;
+                            background-color: rgba(59, 130, 246, 0.1) !important;
                             border-radius: 0.5rem !important;
                             transition: all 0.2s ease !important;
                         }
 
                         [x-data*="NotificationsComponent"] button:hover {
-                            background-color: rgba(251, 191, 36, 0.2) !important;
+                            background-color: rgba(59, 130, 246, 0.2) !important;
                             transform: scale(1.05);
                         }
 
                         [x-data*="NotificationsComponent"] button svg {
                             width: 1.5rem !important;
                             height: 1.5rem !important;
-                            color: rgb(251, 191, 36) !important;
+                            color: rgb(59, 130, 246) !important;
                         }
 
                         /* Pulse animation for unread notifications */
@@ -110,10 +112,10 @@ class AdminPanelProvider extends PanelProvider
 
                         @keyframes pulse-notification {
                             0%, 100% {
-                                box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4);
+                                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
                             }
                             50% {
-                                box-shadow: 0 0 0 8px rgba(251, 191, 36, 0);
+                                box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
                             }
                         }
 
