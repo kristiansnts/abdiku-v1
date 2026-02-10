@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use Filament\Facades\Filament;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -21,10 +22,7 @@ class EmployeeInvitationNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $url = route('filament.admin.auth.password-reset.reset', [
-            'token' => $this->token,
-            'email' => $notifiable->email,
-        ]);
+        $url = Filament::getPanel('admin')->getResetPasswordUrl($this->token, $notifiable);
 
         return (new MailMessage)
             ->subject('Undangan Akun ' . config('app.name'))
