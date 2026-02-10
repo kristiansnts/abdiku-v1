@@ -40,6 +40,19 @@ final class EmployeeForm
                     ->native(false)
                     ->helperText('Hubungkan dengan akun pengguna untuk akses login'),
 
+                Select::make('department_id')
+                    ->label('Departemen')
+                    ->relationship(
+                        'department',
+                        'name',
+                        fn($query) => $query->where('company_id', auth()->user()?->company_id)
+                    )
+                    ->nullable()
+                    ->searchable()
+                    ->preload()
+                    ->native(false)
+                    ->helperText('Opsional'),
+
                 Select::make('status')
                     ->label('Status')
                     ->options([

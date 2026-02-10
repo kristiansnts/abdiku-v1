@@ -63,6 +63,7 @@ return [
 
         'pages' => [
             'Dashboard',
+            'CompanySettings',
         ],
 
         'widgets' => [

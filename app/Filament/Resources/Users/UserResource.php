@@ -13,6 +13,7 @@ use App\Models\User;
 use Filament\Resources\Resource;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 final class UserResource extends Resource
 {
@@ -27,6 +28,17 @@ final class UserResource extends Resource
     protected static ?string $navigationGroup = 'Pengaturan';
 
     protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()?->hasRole('super_admin')) {
+            return $query;
+        }
+
+        return $query->where('company_id', auth()->user()?->company_id);
+    }
 
     public static function getGloballySearchableAttributes(): array
     {

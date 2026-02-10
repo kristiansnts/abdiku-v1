@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Users\Schemas;
 
 use App\Filament\Resources\Users\Pages\CreateUser;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -35,11 +36,20 @@ final class UserForm
                     ->autocomplete('new-password')
                     ->dehydrated(fn($state): bool => filled($state))
                     ->dehydrateStateUsing(fn($state): string => Hash::make($state)),
-                Select::make('role')
+                Select::make('roles')
                     ->searchable()
                     ->label('Role')
-                    ->relationship('roles', 'name')
+                    ->relationship(
+                        'roles',
+                        'name',
+                        fn($query) => auth()->user()?->hasRole('super_admin')
+                            ? $query
+                            : $query->whereIn('name', ['owner', 'hr', 'employee'])
+                    )
                     ->required(),
+
+                Hidden::make('company_id')
+                    ->default(fn() => auth()->user()?->company_id),
             ]);
     }
 }

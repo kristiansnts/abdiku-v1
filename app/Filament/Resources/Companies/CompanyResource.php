@@ -13,6 +13,7 @@ use App\Models\Company;
 use Filament\Resources\Resource;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 final class CompanyResource extends Resource
 {
@@ -29,6 +30,32 @@ final class CompanyResource extends Resource
     protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'name';
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()?->hasRole('super_admin')) {
+            return $query;
+        }
+
+        return $query->where('id', auth()->user()?->company_id);
+    }
 
     public static function form(Form $form): Form
     {
