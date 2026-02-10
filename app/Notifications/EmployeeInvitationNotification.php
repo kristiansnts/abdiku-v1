@@ -13,7 +13,9 @@ class EmployeeInvitationNotification extends Notification
 {
     use Queueable;
 
-    public function __construct(public readonly string $token) {}
+    public function __construct(public readonly string $token)
+    {
+    }
 
     public function via(object $notifiable): array
     {
@@ -27,10 +29,8 @@ class EmployeeInvitationNotification extends Notification
         return (new MailMessage)
             ->subject('Undangan Akun ' . config('app.name'))
             ->greeting('Halo, ' . $notifiable->name . '!')
-            ->line('Akun Anda telah dibuat oleh admin perusahaan.')
+            ->line('Akun Anda telah dibuat oleh ' . ($notifiable->company?->name ?? 'perusahaan') . '.')
             ->line('Klik tombol di bawah untuk mengatur kata sandi dan mulai menggunakan akun Anda.')
-            ->action('Atur Kata Sandi', $url)
-            ->line('Tautan ini berlaku selama ' . config('auth.passwords.users.expire', 60) . ' menit.')
-            ->line('Jika Anda tidak merasa mendaftar, abaikan email ini.');
+            ->action('Atur Kata Sandi', $url);
     }
 }

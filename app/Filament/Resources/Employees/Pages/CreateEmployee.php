@@ -41,7 +41,7 @@ final class CreateEmployee extends CreateRecord
 
             $employee->update(['user_id' => $user->id]);
 
-            $token = Password::createToken($user);
+            $token = Password::broker('invitations')->createToken($user);
             $user->notify(new EmployeeInvitationNotification($token));
         } catch (\Throwable $e) {
             Notification::make()

@@ -34,6 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('4rem')
             ->login()
             ->passwordReset()
+            ->authPasswordBroker('invitations')
             ->colors([
                 'primary' => Color::Blue,
             ])
