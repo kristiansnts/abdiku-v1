@@ -34,5 +34,23 @@ class ResetPassword extends BaseResetPassword
             }
         }
     }
+
+    protected function getResetPasswordSuccessNotificationTitle(): string
+    {
+        return 'Password Berhasil Diatur';
+    }
+
+    protected function getResetPasswordSuccessNotificationMessage(): string
+    {
+        return 'Password Anda telah berhasil diatur. Silakan login dengan password baru Anda.';
+    }
+
+    protected function getSavedNotification(): ?Notification
+    {
+        return Notification::make()
+            ->success()
+            ->title($this->getResetPasswordSuccessNotificationTitle())
+            ->body($this->getResetPasswordSuccessNotificationMessage());
+    }
 }
 

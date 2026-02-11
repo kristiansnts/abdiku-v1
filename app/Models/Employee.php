@@ -21,6 +21,7 @@ class Employee extends Model
         'company_id',
         'department_id',
         'user_id',
+        'employee_id',
         'name',
         'phone',
         'join_date',

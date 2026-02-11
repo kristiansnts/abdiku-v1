@@ -19,6 +19,13 @@ final class EmployeesTable
     {
         return $table
             ->columns([
+                TextColumn::make('employee_id')
+                    ->label('ID Karyawan')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('-')
+                    ->toggleable(),
+
                 TextColumn::make('name')
                     ->label('Nama')
                     ->sortable()

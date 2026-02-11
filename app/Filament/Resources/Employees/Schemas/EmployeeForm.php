@@ -22,6 +22,13 @@ final class EmployeeForm
                     ->maxLength(255)
                     ->required(),
 
+                TextInput::make('employee_id')
+                    ->label('ID Karyawan')
+                    ->maxLength(50)
+                    ->nullable()
+                    ->unique('employees', 'employee_id', ignoreRecord: true)
+                    ->helperText('Nomor identifikasi karyawan (opsional)'),
+
                 Select::make('company_id')
                     ->label('Perusahaan')
                     ->relationship('company', 'name')

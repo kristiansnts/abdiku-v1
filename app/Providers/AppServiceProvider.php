@@ -14,7 +14,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Register our custom password broker manager that handles company-scoped tokens
+        $this->app->singleton('auth.password', function ($app) {
+            return new \App\Auth\Passwords\CompanyScopedPasswordBrokerManager($app);
+        });
     }
 
     /**
