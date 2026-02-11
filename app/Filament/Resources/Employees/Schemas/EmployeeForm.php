@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Employees\Schemas;
 
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 
 final class EmployeeForm
 {
@@ -80,6 +82,34 @@ final class EmployeeForm
                     ->nullable()
                     ->native(false)
                     ->helperText('Kosongkan jika masih aktif'),
+
+                Section::make('Pengaturan Akun')
+                    ->description('Kelola peran dan hak akses pengguna')
+                    ->schema([
+                        Select::make('user_role')
+                            ->label('Peran Pengguna')
+                            ->options([
+                                'employee' => 'Karyawan',
+                                'hr' => 'HR',
+                                'owner' => 'Pemilik',
+                            ])
+                            ->native(false)
+                            ->required()
+                            ->default(fn($record) => $record?->user?->roles?->first()?->name ?? 'employee')
+                            ->helperText('Peran menentukan hak akses pengguna dalam sistem')
+                            ->dehydrated(false)
+                            ->visible(
+                                fn(Get $get, $record) =>
+                                auth()->user()?->hasRole('owner') &&
+                                $record?->user_id !== null
+                            ),
+                    ])
+                    ->visible(
+                        fn(Get $get, $record) =>
+                        auth()->user()?->hasRole('owner') &&
+                        $record?->user_id !== null
+                    )
+                    ->collapsible(),
             ]);
     }
 }
