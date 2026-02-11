@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\ResetPassword;
+use Livewire\Livewire;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -33,7 +35,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(asset('images/payrollkami-logo.png'))
             ->brandLogoHeight('4rem')
             ->login()
-            ->passwordReset()
+            ->passwordReset(resetAction: ResetPassword::class)
             ->authPasswordBroker('invitations')
             ->colors([
                 'primary' => Color::Blue,
@@ -133,5 +135,10 @@ class AdminPanelProvider extends PanelProvider
                     </style>
                 ')
             );
+    }
+
+    public function boot(): void
+    {
+        Livewire::component('app.filament.pages.auth.reset-password', ResetPassword::class);
     }
 }

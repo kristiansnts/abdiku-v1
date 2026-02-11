@@ -105,7 +105,7 @@ return [
         'invitations' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => 0,
+            'expire' => 525600, // 365 days — token is deleted after password is set
             'throttle' => 0,
         ],
     ],
