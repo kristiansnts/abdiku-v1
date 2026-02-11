@@ -16,7 +16,7 @@ final class EditCompany extends EditRecord
     {
         return [
             DeleteAction::make()
-                ->visible(fn() => auth()->user()?->hasRole('super_admin') ?? false),
+                ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'super-admin']) ?? false),
         ];
     }
 }

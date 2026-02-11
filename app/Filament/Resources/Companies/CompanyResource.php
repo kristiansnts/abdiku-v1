@@ -33,24 +33,24 @@ final class CompanyResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->user()?->hasRole('super_admin') ?? false;
+        return auth()->user()?->hasRole(['super_admin', 'super-admin']) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('super_admin') ?? false;
+        return auth()->user()?->hasRole(['super_admin', 'super-admin']) ?? false;
     }
 
     public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
     {
-        return auth()->user()?->hasRole('super_admin') ?? false;
+        return auth()->user()?->hasRole(['super_admin', 'super-admin']) ?? false;
     }
 
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
 
-        if (auth()->user()?->hasRole('super_admin')) {
+        if (auth()->user()?->hasRole(['super_admin', 'super-admin'])) {
             return $query;
         }
 

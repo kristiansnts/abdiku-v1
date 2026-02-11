@@ -35,7 +35,7 @@ final class DepartmentResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->user()?->hasRole('super_admin') ?? false;
+        return auth()->user()?->hasRole(['super_admin', 'super-admin']) ?? false;
     }
 
     public static function getEloquentQuery(): Builder

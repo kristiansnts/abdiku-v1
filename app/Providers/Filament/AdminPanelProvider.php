@@ -69,7 +69,7 @@ class AdminPanelProvider extends PanelProvider
                 'panels::head.end',
                 fn(): string => Blade::render('
                     @if(config(\'services.google.maps_api_key\'))
-                        <script src="https://maps.googleapis.com/maps/api/js?key={{ config(\'services.google.maps_api_key\') }}&libraries=places" defer></script>
+                        <script src="https://maps.googleapis.com/maps/api/js?key={{ config(\'services.google.maps_api_key\') }}&libraries=places&loading=async" async></script>
                     @endif
                     <script>
                         // Debug: Log when notification polling happens

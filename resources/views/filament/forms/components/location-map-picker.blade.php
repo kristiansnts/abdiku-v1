@@ -88,8 +88,12 @@
                     if (this.circle) {
                         this.circle.setCenter({ lat: newLat, lng: newLng });
                     }
-                    this.updateState();
                     
+                    // Update lat/lng in Livewire state
+                    this.$wire.set(this.parentPath + '.latitude', this.latitude);
+                    this.$wire.set(this.parentPath + '.longitude', this.longitude);
+                    
+                    // Geocode and update address
                     const geocoder = new google.maps.Geocoder();
                     geocoder.geocode({ location: { lat: newLat, lng: newLng } }, (results, status) => {
                         if (status === 'OK' && results[0]) {
@@ -97,7 +101,9 @@
                             if (this.$refs.searchInput) {
                                 this.$refs.searchInput.value = this.address;
                             }
-                            this.$wire.set(this.parentPath + '.address', this.address);
+                            this.$wire.set(this.parentPath + '.address', this.address).then(() => {
+                                this.$wire.$refresh();
+                            });
                         }
                     });
                 });
@@ -126,11 +132,19 @@
                             this.circle.setCenter({ lat: newLat, lng: newLng });
                         }
                         
-                        this.updateState();
+                        // Batch all field updates  
+                        this.$wire.set(this.parentPath + '.latitude', this.latitude);
+                        this.$wire.set(this.parentPath + '.longitude', this.longitude);
                         this.$wire.set(this.parentPath + '.address', this.address);
                         if (place.name) {
                             this.$wire.set(this.parentPath + '.name', place.name);
                         }
+                        
+                        // Force Livewire to re-render form fields
+                        // wire:ignore protects the map from being destroyed
+                        this.$nextTick(() => {
+                            this.$wire.$refresh();
+                        });
                     });
                 }
             }

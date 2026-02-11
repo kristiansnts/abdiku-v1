@@ -15,7 +15,7 @@ return new class extends Migration {
             $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
             $table->string('name');
             $table->enum('role', ['EMPLOYEE', 'HR', 'OWNER'])->nullable();
-            $table->string('email')->unique();
+            $table->string('email');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->text('app_authentication_secret')->nullable();
@@ -23,6 +23,9 @@ return new class extends Migration {
             $table->rememberToken();
             $table->timestamp('updated_at');
             $table->timestamp('created_at');
+
+            // Composite unique constraint: email must be unique per company
+            $table->unique(['email', 'company_id'], 'users_email_company_unique');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table): void {

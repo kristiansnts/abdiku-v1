@@ -24,7 +24,9 @@ final class UserForm
                     ->required(),
                 TextInput::make('email')
                     ->maxLength(255)
-                    ->unique()
+                    ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule, $get) {
+                        return $rule->where('company_id', auth()->user()?->company_id);
+                    })
                     ->email()
                     ->required(),
                 TextInput::make('password')
@@ -42,10 +44,11 @@ final class UserForm
                     ->relationship(
                         'roles',
                         'name',
-                        fn($query) => auth()->user()?->hasRole('super_admin')
-                            ? $query
-                            : $query->whereIn('name', ['owner', 'hr', 'employee'])
+                        fn($query) => auth()->user()?->hasRole(['super_admin', 'super-admin'])
+                        ? $query
+                        : $query->whereIn('name', ['owner', 'hr', 'employee'])
                     )
+                    ->preload()
                     ->required(),
 
                 Hidden::make('company_id')

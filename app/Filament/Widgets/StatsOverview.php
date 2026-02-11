@@ -16,6 +16,18 @@ class StatsOverview extends BaseWidget
 {
     protected static ?int $sort = 1;
 
+    public static function canView(): bool
+    {
+        // Only show widget if user has a company and is not a super admin
+        $user = auth()->user();
+
+        if (!$user || $user->hasRole(['super_admin', 'super-admin'])) {
+            return false;
+        }
+
+        return $user->company !== null;
+    }
+
     protected function getStats(): array
     {
         $companyId = auth()->user()?->company_id;

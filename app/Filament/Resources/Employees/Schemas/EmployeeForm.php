@@ -33,7 +33,9 @@ final class EmployeeForm
                     ->email()
                     ->required()
                     ->maxLength(255)
-                    ->unique('users', 'email')
+                    ->unique('users', 'email', modifyRuleUsing: function ($rule, $get) {
+                        return $rule->where('company_id', $get('company_id') ?? auth()->user()?->company_id);
+                    })
                     ->dehydrated(false)
                     ->helperText('Digunakan untuk login dan pengiriman undangan'),
 

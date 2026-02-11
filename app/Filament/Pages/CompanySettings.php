@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Pages;
 
 use App\Filament\Forms\Components\LocationMapPicker;
+use App\Models\Company;
 use App\Models\Department;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -47,18 +48,34 @@ class CompanySettings extends Page implements HasForms, HasTable
 
     public static function canAccess(): bool
     {
+        // Super admins don't have a company, so they shouldn't access this page
+        if (auth()->user()?->hasRole(['super_admin', 'super-admin'])) {
+            return false;
+        }
+
+        // Allow owners and other roles to access (owners might not have a company yet)
         return auth()->check();
     }
 
     public static function shouldRegisterNavigation(): bool
     {
-        return !auth()->user()?->hasRole('super_admin');
+        return !auth()->user()?->hasRole(['super_admin', 'super-admin']);
     }
 
     public function mount(): void
     {
         $company = auth()->user()->company;
 
+        // If user doesn't have a company, show empty form for initial setup
+        if (!$company) {
+            $this->form->fill([
+                'name' => '',
+                'locations' => [],
+            ]);
+            return;
+        }
+
+        // Load existing company data
         $this->form->fill([
             'name' => $company->name,
             'locations' => $company->locations->map(fn($l) => [
@@ -96,11 +113,14 @@ class CompanySettings extends Page implements HasForms, HasTable
                                     ->placeholder('Contoh: Kantor Pusat Jakarta')
                                     ->maxLength(255)
                                     ->required()
+                                    ->reactive()
                                     ->columnSpanFull(),
 
                                 TextInput::make('address')
                                     ->label('Alamat')
                                     ->maxLength(500)
+                                    ->reactive()
+                                    ->live(onBlur: true)
                                     ->columnSpanFull(),
 
                                 LocationMapPicker::make('location_data')
@@ -136,10 +156,29 @@ class CompanySettings extends Page implements HasForms, HasTable
     public function save(): void
     {
         $data = $this->form->getState();
-        $company = auth()->user()->company;
+        $user = auth()->user();
+        $company = $user->company;
 
-        $company->update(['name' => $data['name']]);
+        // If user doesn't have a company, create one
+        if (!$company) {
+            $company = Company::create([
+                'name' => $data['name'],
+            ]);
 
+            // Associate the user with the new company
+            $user->update(['company_id' => $company->id]);
+
+            Notification::make()
+                ->title('Perusahaan berhasil dibuat')
+                ->body('Selamat datang! Perusahaan Anda telah berhasil dibuat.')
+                ->success()
+                ->send();
+        } else {
+            // Update existing company
+            $company->update(['name' => $data['name']]);
+        }
+
+        // Handle locations (both for new and existing companies)
         $submittedIds = collect($data['locations'])->pluck('id')->filter()->values()->toArray();
         $company->locations()->whereNotIn('id', $submittedIds)->delete();
 
@@ -152,10 +191,12 @@ class CompanySettings extends Page implements HasForms, HasTable
             }
         }
 
-        Notification::make()
-            ->title('Pengaturan perusahaan berhasil disimpan')
-            ->success()
-            ->send();
+        if ($user->company) {
+            Notification::make()
+                ->title('Pengaturan perusahaan berhasil disimpan')
+                ->success()
+                ->send();
+        }
     }
 
     public function table(Table $table): Table

@@ -19,15 +19,25 @@ class DailyAttendanceWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        return true;
+        // Only show widget if user has a company and is not a super admin
+        $user = auth()->user();
+
+        if (!$user || $user->hasRole(['super_admin', 'super-admin'])) {
+            return false;
+        }
+
+        return $user->company !== null;
     }
 
     public function table(Table $table): Table
     {
+        $companyId = auth()->user()?->company_id;
+
         return $table
             ->query(
                 AttendanceRaw::query()
                     ->with(['employee', 'companyLocation'])
+                    ->when($companyId, fn($query) => $query->where('company_id', $companyId))
                     ->whereDate('date', now('Asia/Jakarta')->toDateString())
                     ->latest('clock_in')
             )
