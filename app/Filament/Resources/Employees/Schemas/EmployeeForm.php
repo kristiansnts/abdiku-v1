@@ -90,6 +90,41 @@ final class EmployeeForm
                     ->native(false)
                     ->helperText('Kosongkan jika masih aktif'),
 
+                Section::make('Informasi Legal & Pajak')
+                    ->description('Data mandatory untuk perhitungan PPh21 dan BPJS')
+                    ->schema([
+                        Select::make('ptkp_status')
+                            ->label('Status PTKP')
+                            ->options([
+                                'TK/0' => 'TK/0 (Tidak Kawin, 0 Tanggungan)',
+                                'TK/1' => 'TK/1 (Tidak Kawin, 1 Tanggungan)',
+                                'TK/2' => 'TK/2 (Tidak Kawin, 2 Tanggungan)',
+                                'TK/3' => 'TK/3 (Tidak Kawin, 3 Tanggungan)',
+                                'K/0'  => 'K/0 (Kawin, 0 Tanggungan)',
+                                'K/1'  => 'K/1 (Kawin, 1 Tanggungan)',
+                                'K/2'  => 'K/2 (Kawin, 2 Tanggungan)',
+                                'K/3'  => 'K/3 (Kawin, 3 Tanggungan)',
+                            ])
+                            ->required()
+                            ->native(false),
+                        
+                        TextInput::make('npwp')
+                            ->label('Nomor NPWP')
+                            ->maxLength(20),
+
+                        TextInput::make('nik')
+                            ->label('Nomor NIK (KTP)')
+                            ->maxLength(20),
+
+                        TextInput::make('bpjs_kesehatan_number')
+                            ->label('No. BPJS Kesehatan')
+                            ->maxLength(30),
+
+                        TextInput::make('bpjs_ketenagakerjaan_number')
+                            ->label('No. BPJS Ketenagakerjaan')
+                            ->maxLength(30),
+                    ])->columns(2),
+
                 Section::make('Pengaturan Akun')
                     ->description('Kelola peran dan hak akses pengguna')
                     ->schema([

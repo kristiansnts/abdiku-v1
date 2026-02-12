@@ -32,6 +32,11 @@ final class PayrollRowsTable
                     ->label('Potongan')
                     ->money('IDR')
                     ->sortable(),
+                TextColumn::make('tax_amount')
+                    ->label('Pajak (PPh21)')
+                    ->money('IDR')
+                    ->color('danger')
+                    ->sortable(),
                 TextColumn::make('net_amount')
                     ->label('Take Home Pay')
                     ->money('IDR')
