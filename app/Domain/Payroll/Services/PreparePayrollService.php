@@ -123,12 +123,13 @@ class PreparePayrollService
     ): AttendanceClassification {
         // Leave takes precedence
         if ($leave !== null) {
-            return match ($leave->leave_type->value) {
-                'PAID' => AttendanceClassification::PAID_LEAVE,
-                'UNPAID' => AttendanceClassification::UNPAID_LEAVE,
-                'SICK_PAID' => AttendanceClassification::PAID_SICK,
-                'SICK_UNPAID' => AttendanceClassification::UNPAID_SICK,
-            };
+            $type = $leave->leaveType;
+
+            if ($type->code === 'sick') {
+                return $type->is_paid ? AttendanceClassification::PAID_SICK : AttendanceClassification::UNPAID_SICK;
+            }
+
+            return $type->is_paid ? AttendanceClassification::PAID_LEAVE : AttendanceClassification::UNPAID_LEAVE;
         }
 
         // Holiday takes precedence over attendance

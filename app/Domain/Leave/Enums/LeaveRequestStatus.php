@@ -16,9 +16,9 @@ enum LeaveRequestStatus: string implements HasLabel, HasColor
     public function getLabel(): string
     {
         return match ($this) {
-            self::PENDING => 'Pending Approval',
-            self::APPROVED => 'Approved',
-            self::REJECTED => 'Rejected',
+            self::PENDING => 'Menunggu Persetujuan',
+            self::APPROVED => 'Disetujui',
+            self::REJECTED => 'Ditolak',
         };
     }
 

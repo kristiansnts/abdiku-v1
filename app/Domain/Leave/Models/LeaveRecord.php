@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Leave\Models;
 
-use App\Domain\Leave\Enums\LeaveType;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
@@ -17,13 +16,12 @@ class LeaveRecord extends Model
         'company_id',
         'employee_id',
         'date',
-        'leave_type',
+        'leave_type_id',
         'approved_by',
     ];
 
     protected $casts = [
         'date' => 'date',
-        'leave_type' => LeaveType::class,
     ];
 
     public function company(): BelongsTo
@@ -34,6 +32,11 @@ class LeaveRecord extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'employee_id');
+    }
+
+    public function leaveType(): BelongsTo
+    {
+        return $this->belongsTo(LeaveType::class);
     }
 
     public function approvedBy(): BelongsTo

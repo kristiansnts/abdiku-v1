@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\Employee\EmployeeSalaryController;
 use App\Http\Controllers\Api\V1\Employee\PayslipDownloadController;
 use App\Http\Controllers\Api\V1\Employee\PayslipDownloadUrlController;
 use App\Http\Controllers\Api\V1\HomeController;
+use App\Http\Controllers\Api\V1\Leave\LeaveTypeController;
 use App\Http\Controllers\Api\V1\Notification\FcmTokenController;
 use App\Http\Controllers\Api\V1\Notification\NotificationController;
 use App\Http\Controllers\Api\V1\PayslipController;
@@ -86,6 +87,7 @@ Route::prefix('v1')->group(function () {
 
             Route::prefix('company')->group(function () {
                 Route::get('locations', CompanyLocationController::class);
+                Route::get('leave-types', LeaveTypeController::class);
             });
 
             Route::prefix('employee')->group(function () {

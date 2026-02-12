@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Domain\Attendance\Models\ShiftPolicy;
 use App\Domain\Attendance\Models\WorkPattern;
+use App\Domain\Leave\Models\LeaveType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -51,5 +52,10 @@ class Company extends Model
     public function workPatterns(): HasMany
     {
         return $this->hasMany(WorkPattern::class);
+    }
+
+    public function leaveTypes(): HasMany
+    {
+        return $this->hasMany(LeaveType::class);
     }
 }
