@@ -17,6 +17,10 @@ use Illuminate\Support\Facades\DB;
 
 class CalculatePayrollService
 {
+    public function __construct(
+        protected TaxCalculationService $taxService
+    ) {}
+
     public function execute(PayrollBatch $batch): void
     {
         // Load the payroll period with company relationship
@@ -65,27 +69,41 @@ class CalculatePayrollService
             $proratedBaseSalary = $baseSalary;
         }
 
-        $allowances = $compensation->total_allowances;
+        // Calculate allowances based on type
+        $fixedAllowances = $compensation->getFixedAllowancesSum();
+        $variableAllowancesPerMonth = $compensation->getVariableAllowancesSum();
+        
+        // Variable allowances (like meal/transport) are paid based on attendance
+        $proratedVariableAllowances = 0;
+        if ($totalWorkingDays > 0) {
+            $proratedVariableAllowances = ($attendanceCount / $totalWorkingDays) * $variableAllowancesPerMonth;
+        }
+
+        $totalAllowances = $fixedAllowances + $proratedVariableAllowances;
 
         // Get additions for this period
         $additions = $this->getAdditions($employee, $period);
         $totalAdditions = $additions->sum('amount');
 
-        $grossAmount = $proratedBaseSalary + $allowances + $totalAdditions;
+        $grossAmount = $proratedBaseSalary + $totalAllowances + $totalAdditions;
 
         // Calculate deductions
         $deductions = $this->calculateDeductions($employee, $compensation, $grossAmount);
         $totalEmployeeDeductions = collect($deductions)->sum('employee_amount');
 
-        // Calculate net
-        $netAmount = $grossAmount - $totalEmployeeDeductions;
+        // Calculate Tax (PPh21)
+        $taxAmount = $this->taxService->calculateMonthlyTax($employee, $grossAmount);
+
+        // Calculate net (Gross - Deductions - Tax)
+        $netAmount = $grossAmount - $totalEmployeeDeductions - $taxAmount;
 
         // Create payroll row
         $row = PayrollRow::create([
             'payroll_batch_id' => $batch->id,
             'employee_id' => $employee->id,
             'gross_amount' => $grossAmount,
-            'deduction_amount' => $totalEmployeeDeductions,
+            'deduction_amount' => $totalEmployeeDeductions, 
+            'tax_amount' => $taxAmount,
             'net_amount' => $netAmount,
         ]);
 
@@ -128,18 +146,27 @@ class CalculatePayrollService
             ->where('payable', true)
             ->count();
 
-        // Calculate total working days (excluding weekends)
-        $start = $period->period_start;
-        $end = $period->period_end;
-        $totalWorkingDays = 0;
-        $currentDate = $start->copy();
+        // Get the work assignment active for this period
+        $assignment = $employee->getWorkAssignmentOn($period->period_start);
+        
+        if ($assignment && $assignment->workPattern) {
+            $totalWorkingDays = $assignment->workPattern->countWorkingDaysInRange(
+                $period->period_start,
+                $period->period_end
+            );
+        } else {
+            // Fallback to standard 5-day week if no pattern is assigned
+            $start = $period->period_start;
+            $end = $period->period_end;
+            $totalWorkingDays = 0;
+            $currentDate = $start->copy();
 
-        while ($currentDate <= $end) {
-            // Count only weekdays (Monday to Friday)
-            if ($currentDate->isWeekday()) {
-                $totalWorkingDays++;
+            while ($currentDate <= $end) {
+                if ($currentDate->isWeekday()) {
+                    $totalWorkingDays++;
+                }
+                $currentDate->addDay();
             }
-            $currentDate->addDay();
         }
 
         return [

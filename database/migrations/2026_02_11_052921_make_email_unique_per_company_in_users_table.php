@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration {
     /**
@@ -10,12 +11,30 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            // Drop the existing unique constraint on email
-            $table->dropUnique(['email']);
+        $driver = DB::getDriverName();
 
-            // Add composite unique constraint on email and company_id
-            $table->unique(['email', 'company_id'], 'users_email_company_unique');
+        Schema::table('users', function (Blueprint $table) use ($driver) {
+            if ($driver !== 'sqlite') {
+                // Only drop if we are not on SQLite (SQLite doesn't support dropping constraints well)
+                $table->dropUnique(['email']);
+            }
+
+            $indexName = 'users_email_company_unique';
+            
+            // Determine if index exists using driver-specific logic
+            $indexExists = false;
+            if ($driver === 'sqlite') {
+                $indexExists = collect(DB::select("SELECT name FROM sqlite_master WHERE type='index' AND name='{$indexName}'"))->isNotEmpty();
+            } elseif ($driver === 'pgsql') {
+                $indexExists = collect(DB::select("SELECT indexname FROM pg_indexes WHERE indexname = ?", [$indexName]))->isNotEmpty();
+            } else {
+                // MySQL/Others - Default to letting Laravel try to handle it or assuming false
+                $indexExists = false; 
+            }
+
+            if (!$indexExists) {
+                $table->unique(['email', 'company_id'], $indexName);
+            }
         });
     }
 
@@ -24,12 +43,14 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            // Drop the composite unique constraint
+        $driver = DB::getDriverName();
+
+        Schema::table('users', function (Blueprint $table) use ($driver) {
             $table->dropUnique('users_email_company_unique');
 
-            // Restore the original unique constraint on email only
-            $table->unique('email');
+            if ($driver !== 'sqlite') {
+                $table->unique('email');
+            }
         });
     }
 };
