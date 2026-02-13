@@ -15,6 +15,51 @@
         
         init() {
             this.initMap();
+
+            // Watch for address changes from parent form's Livewire state
+            if (!this.isDisabled) {
+                const addressPath = this.parentPath + '.address';
+                let lastAddress = this.address;
+
+                // Poll for address changes every 500ms
+                setInterval(() => {
+                    const currentAddress = this.$wire.get(addressPath);
+                    if (currentAddress && currentAddress !== lastAddress && currentAddress.trim()) {
+                        lastAddress = currentAddress;
+                        this.address = currentAddress;
+
+                        // Update search input
+                        if (this.$refs.searchInput) {
+                            this.$refs.searchInput.value = currentAddress;
+                        }
+
+                        // Geocode the address
+                        if (this.map) {
+                            const geocoder = new google.maps.Geocoder();
+                            geocoder.geocode({ address: currentAddress, componentRestrictions: { country: 'id' } }, (results, status) => {
+                                if (status === 'OK' && results[0]) {
+                                    const location = results[0].geometry.location;
+                                    const newLat = location.lat();
+                                    const newLng = location.lng();
+
+                                    this.latitude = newLat;
+                                    this.longitude = newLng;
+
+                                    this.map.setCenter({ lat: newLat, lng: newLng });
+                                    this.marker.setPosition({ lat: newLat, lng: newLng });
+                                    if (this.circle) {
+                                        this.circle.setCenter({ lat: newLat, lng: newLng });
+                                    }
+
+                                    // Update Livewire state
+                                    this.$wire.set(this.parentPath + '.latitude', this.latitude);
+                                    this.$wire.set(this.parentPath + '.longitude', this.longitude);
+                                }
+                            });
+                        }
+                    }
+                }, 500);
+            }
         },
         
         initMap() {
@@ -101,9 +146,7 @@
                             if (this.$refs.searchInput) {
                                 this.$refs.searchInput.value = this.address;
                             }
-                            this.$wire.set(this.parentPath + '.address', this.address).then(() => {
-                                this.$wire.$refresh();
-                            });
+                            this.$wire.set(this.parentPath + '.address', this.address);
                         }
                     });
                 });
@@ -132,19 +175,13 @@
                             this.circle.setCenter({ lat: newLat, lng: newLng });
                         }
                         
-                        // Batch all field updates  
+                        // Batch all field updates
                         this.$wire.set(this.parentPath + '.latitude', this.latitude);
                         this.$wire.set(this.parentPath + '.longitude', this.longitude);
                         this.$wire.set(this.parentPath + '.address', this.address);
                         if (place.name) {
                             this.$wire.set(this.parentPath + '.name', place.name);
                         }
-                        
-                        // Force Livewire to re-render form fields
-                        // wire:ignore protects the map from being destroyed
-                        this.$nextTick(() => {
-                            this.$wire.$refresh();
-                        });
                     });
                 }
             }
