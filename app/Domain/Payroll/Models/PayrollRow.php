@@ -30,12 +30,15 @@ class PayrollRow extends Model
         'deduction_amount',
         'tax_amount',
         'net_amount',
+        'audit_log',
     ];
 
     protected $casts = [
         'gross_amount' => 'decimal:2',
         'deduction_amount' => 'decimal:2',
+        'tax_amount' => 'decimal:2',
         'net_amount' => 'decimal:2',
+        'audit_log' => 'array',
     ];
 
     public function payrollBatch(): BelongsTo

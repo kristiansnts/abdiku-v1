@@ -53,22 +53,19 @@ class ThrCalculationPolicyTest extends TestCase
     public function test_calculate_daily_employee(): void
     {
         $monthlySalary = 3000000;
-        $actualWorkDays = 200;
-        $totalWorkingDaysInYear = 300;
+        $tenure = $this->createTenure(12);
 
-        $result = $this->policy->calculateDailyEmployee($monthlySalary, $actualWorkDays, $totalWorkingDaysInYear);
+        $result = $this->policy->calculateDailyEmployee($monthlySalary, $tenure);
 
-        $expected = ($actualWorkDays / $totalWorkingDaysInYear) * $monthlySalary;
-        $this->assertEquals($expected, $result);
+        $this->assertEquals($monthlySalary, $result);
     }
 
     public function test_calculate_daily_employee_with_zero_days(): void
     {
         $monthlySalary = 3000000;
-        $actualWorkDays = 0;
-        $totalWorkingDaysInYear = 300;
+        $tenure = $this->createTenure(0);
 
-        $result = $this->policy->calculateDailyEmployee($monthlySalary, $actualWorkDays, $totalWorkingDaysInYear);
+        $result = $this->policy->calculateDailyEmployee($monthlySalary, $tenure);
 
         $this->assertEquals(0, $result);
     }

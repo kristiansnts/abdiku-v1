@@ -42,8 +42,10 @@ class ClockInService
         );
 
         if (!$geofenceResult->withinGeofence) {
+            $errorCode = $data->isMocked ? 'MOCK_LOCATION_DETECTED' : 'OUT_OF_GEOFENCE';
             throw new \App\Exceptions\Api\AttendanceException(
                 $geofenceResult->reason ?? 'Lokasi di luar geofence', 
+                $errorCode,
                 422
             );
         }

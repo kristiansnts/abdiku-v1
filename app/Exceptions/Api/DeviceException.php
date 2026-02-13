@@ -5,16 +5,39 @@ declare(strict_types=1);
 namespace App\Exceptions\Api;
 
 use Exception;
+use Illuminate\Http\JsonResponse;
 
 class DeviceException extends Exception
 {
+    public string $errorCode;
+    public int $statusCode;
+    public ?array $data;
+
     public function __construct(
         string $message,
-        public readonly string $errorCode,
-        public readonly int $statusCode = 403,
-        public readonly ?array $data = null,
+        string $errorCode,
+        int $statusCode = 403,
+        ?array $data = null
     ) {
-        parent::__construct($message);
+        parent::__construct($message, $statusCode);
+        $this->errorCode = $errorCode;
+        $this->statusCode = $statusCode;
+        $this->data = $data;
+    }
+
+    /**
+     * Render the exception into an HTTP response.
+     */
+    public function render($request): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'error' => [
+                'code' => $this->errorCode,
+                'message' => $this->getMessage(),
+                'data' => $this->data,
+            ],
+        ], $this->statusCode);
     }
 
     public static function deviceBlocked(string $reason): self

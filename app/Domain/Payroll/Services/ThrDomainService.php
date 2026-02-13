@@ -81,8 +81,7 @@ final class ThrDomainService
     ): float {
         return $this->calculationPolicy->calculateDailyEmployee(
             $monthlySalary,
-            $tenure->daysWorked,
-            $workingDaysInYear
+            $tenure
         );
     }
 }

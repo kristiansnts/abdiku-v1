@@ -43,7 +43,7 @@ class MobileAttendanceApiTest extends TestCase
         $this->employee = Employee::factory()->create([
             'user_id' => $this->user->id,
             'company_id' => $this->company->id
-        ]);
+        , 'ptkp_status' => 'TK/0']);
 
         $this->location = CompanyLocation::factory()->create([
             'company_id' => $this->company->id,
@@ -352,7 +352,7 @@ class MobileAttendanceApiTest extends TestCase
                 'geolocation' => [
                     'lat' => -6.2088, // Within 100m of location
                     'lng' => 106.8456,
-                    'accuracy' => 10.5
+                    'accuracy' => 10.5, 'is_mocked' => false
                 ],
                 'device' => [
                     'device_id' => 'test-device-001',
@@ -413,7 +413,7 @@ class MobileAttendanceApiTest extends TestCase
                 'geolocation' => [
                     'lat' => -6.3000, // Far from any location
                     'lng' => 106.9000,
-                    'accuracy' => 10.5
+                    'accuracy' => 10.5, 'is_mocked' => false
                 ],
                 'device' => [
                     'device_id' => 'test-device-001',
@@ -424,15 +424,14 @@ class MobileAttendanceApiTest extends TestCase
             ]
         ]);
 
-        $response->assertStatus(201);
+        $response->assertStatus(422);
 
-        $data = $response->json('data');
-        $this->assertEquals('PENDING', $data['status']);
-        $this->assertEquals('MOBILE', $data['source']);
-
-        // The location might be assigned even for out-of-geofence check-ins
-        // as the system might assign the nearest location regardless
-        $this->assertArrayHasKey('location', $data);
+        $response->assertJson([
+            'success' => false,
+            'error' => [
+                'code' => 'OUT_OF_GEOFENCE'
+            ]
+        ]);
     }
 
     /** @test */
@@ -448,7 +447,7 @@ class MobileAttendanceApiTest extends TestCase
                 'geolocation' => [
                     'lat' => -6.2088,
                     'lng' => 106.8456,
-                    'accuracy' => 10.5
+                    'accuracy' => 10.5, 'is_mocked' => false
                 ],
                 'device' => [
                     'device_id' => $this->device->device_id,
@@ -470,7 +469,7 @@ class MobileAttendanceApiTest extends TestCase
                 'geolocation' => [
                     'lat' => -6.2088,
                     'lng' => 106.8456,
-                    'accuracy' => 10.5
+                    'accuracy' => 10.5, 'is_mocked' => false
                 ],
                 'device' => [
                     'device_id' => $this->device->device_id,
@@ -528,7 +527,7 @@ class MobileAttendanceApiTest extends TestCase
                 'geolocation' => [
                     'lat' => -6.2088, // Within geofence
                     'lng' => 106.8456,
-                    'accuracy' => 10.5
+                    'accuracy' => 10.5, 'is_mocked' => false
                 ],
                 'device' => [
                     'device_id' => $this->device->device_id,
@@ -549,7 +548,7 @@ class MobileAttendanceApiTest extends TestCase
                 'geolocation' => [
                     'lat' => -6.2088,
                     'lng' => 106.8456,
-                    'accuracy' => 10.5
+                    'accuracy' => 10.5, 'is_mocked' => false
                 ]
             ]
         ]);
@@ -613,7 +612,7 @@ class MobileAttendanceApiTest extends TestCase
                 'geolocation' => [
                     'lat' => -6.2088,
                     'lng' => 106.8456,
-                    'accuracy' => 10.5
+                    'accuracy' => 10.5, 'is_mocked' => false
                 ],
                 'device' => [
                     'device_id' => $this->device->device_id,
@@ -632,7 +631,7 @@ class MobileAttendanceApiTest extends TestCase
                 'geolocation' => [
                     'lat' => -6.2088,
                     'lng' => 106.8456,
-                    'accuracy' => 10.5
+                    'accuracy' => 10.5, 'is_mocked' => false
                 ]
             ]
         ]);
@@ -1415,7 +1414,7 @@ class MobileAttendanceApiTest extends TestCase
             $response = $this->json($method, $endpoint, [
                 'clock_in_at' => now()->toISOString(),
                 'evidence' => [
-                    'geolocation' => ['lat' => -6.2088, 'lng' => 106.8456, 'accuracy' => 10.5],
+                    'geolocation' => ['lat' => -6.2088, 'lng' => 106.8456, 'accuracy' => 10.5, 'is_mocked' => false],
                     'device' => ['device_id' => 'test', 'model' => 'test', 'os' => 'test', 'app_version' => '1.0.0']
                 ]
             ]);
