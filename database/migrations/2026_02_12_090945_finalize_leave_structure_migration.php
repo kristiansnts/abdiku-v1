@@ -10,25 +10,47 @@ return new class extends Migration {
      */
     public function up(): void
     {
+        // Data Fix: Dijalankan di luar Schema builder untuk memastikan data bersih dulu
+        $defaultLeaveTypeId = \Illuminate\Support\Facades\DB::table('leave_types')->value('id');
+        
+        if ($defaultLeaveTypeId) {
+            \Illuminate\Support\Facades\DB::table('leave_requests')
+                ->whereNull('leave_type_id')
+                ->update(['leave_type_id' => $defaultLeaveTypeId]);
+                
+            \Illuminate\Support\Facades\DB::table('leave_records')
+                ->whereNull('leave_type_id')
+                ->update(['leave_type_id' => $defaultLeaveTypeId]);
+        }
+
         Schema::table('leave_requests', function (Blueprint $table) {
-            // Drop it only if it exists
             if (Schema::hasColumn('leave_requests', 'leave_type')) {
                 $table->dropColumn('leave_type');
             }
-
-            // Make the new column NOT NULL
-            $table->unsignedBigInteger('leave_type_id')->nullable(false)->change();
         });
 
+        // Paksa change column secara terpisah - Hanya untuk PostgreSQL
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'pgsql') {
+            \Illuminate\Support\Facades\DB::statement('ALTER TABLE leave_requests ALTER COLUMN leave_type_id SET NOT NULL');
+        } else {
+            Schema::table('leave_requests', function (Blueprint $table) {
+                $table->unsignedBigInteger('leave_type_id')->nullable(false)->change();
+            });
+        }
+
         Schema::table('leave_records', function (Blueprint $table) {
-            // Drop it only if it exists
             if (Schema::hasColumn('leave_records', 'leave_type')) {
                 $table->dropColumn('leave_type');
             }
-
-            // Make the new column NOT NULL
-            $table->unsignedBigInteger('leave_type_id')->nullable(false)->change();
         });
+
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'pgsql') {
+            \Illuminate\Support\Facades\DB::statement('ALTER TABLE leave_records ALTER COLUMN leave_type_id SET NOT NULL');
+        } else {
+            Schema::table('leave_records', function (Blueprint $table) {
+                $table->unsignedBigInteger('leave_type_id')->nullable(false)->change();
+            });
+        }
     }
 
     /**

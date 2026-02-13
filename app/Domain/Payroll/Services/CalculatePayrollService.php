@@ -92,10 +92,48 @@ class CalculatePayrollService
         $totalEmployeeDeductions = collect($deductions)->sum('employee_amount');
 
         // Calculate Tax (PPh21)
-        $taxAmount = $this->taxService->calculateMonthlyTax($employee, $grossAmount);
+        $taxResult = $this->taxService->calculateMonthlyTax($employee, $grossAmount);
+        $taxAmount = $taxResult['tax_amount'];
 
         // Calculate net (Gross - Deductions - Tax)
         $netAmount = $grossAmount - $totalEmployeeDeductions - $taxAmount;
+
+        // Audit Trail: Transparansi Hitungan untuk Owner/Admin
+        $auditLog = [
+            'version' => 'Compliance-v1-TER2024',
+            'timestamp' => now()->toDateTimeString(),
+            'breakdown' => [
+                [
+                    'label' => 'Gaji Pokok Prorata',
+                    'formula' => "({$attendanceCount}/{$totalWorkingDays}) * " . number_format($baseSalary),
+                    'result' => $proratedBaseSalary,
+                    'note' => 'Berdasarkan hari kerja efektif karyawan.'
+                ],
+                [
+                    'label' => 'Tunjangan Variabel Prorata',
+                    'formula' => "({$attendanceCount}/{$totalWorkingDays}) * " . number_format($variableAllowancesPerMonth),
+                    'result' => $proratedVariableAllowances,
+                    'note' => 'Makan/Transport dipotong jika absen (Zero-Leakage).'
+                ],
+                [
+                    'label' => 'Kategori TER PPh21',
+                    'formula' => $employee->ptkp_status,
+                    'result' => $taxResult['category'],
+                    'note' => 'Berdasarkan status PTKP terbaru (PP 58/2023).'
+                ],
+                [
+                    'label' => 'Tarif Pajak Efektif',
+                    'formula' => "Bruto " . number_format($grossAmount),
+                    'result' => ($taxResult['rate'] * 100) . '%',
+                    'note' => "Total Pajak: Rp " . number_format($taxAmount)
+                ]
+            ],
+            'legal_references' => [
+                'PP No. 58 Tahun 2023 (PPh21 TER)',
+                'UU HPP No. 7 Tahun 2021',
+                'Permenaker No. 6 Tahun 2016'
+            ]
+        ];
 
         // Create payroll row
         $row = PayrollRow::create([
@@ -105,6 +143,7 @@ class CalculatePayrollService
             'deduction_amount' => $totalEmployeeDeductions, 
             'tax_amount' => $taxAmount,
             'net_amount' => $netAmount,
+            'audit_log' => $auditLog, // Inject transparency log
         ]);
 
         // Create deduction details

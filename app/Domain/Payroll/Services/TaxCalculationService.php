@@ -11,10 +11,14 @@ final class TaxCalculationService
     /**
      * Calculate monthly PPh21 using TER (Tarif Efektif Rata-rata) 2024
      */
-    public function calculateMonthlyTax(Employee $employee, float $grossAmount): float
+    public function calculateMonthlyTax(Employee $employee, float $grossAmount): array
     {
         if ($grossAmount <= 0) {
-            return 0;
+            return [
+                'tax_amount' => 0.0,
+                'rate' => 0.0,
+                'category' => 'A'
+            ];
         }
 
         $ptkpStatus = $employee->ptkp_status ?? 'TK/0';
@@ -22,7 +26,11 @@ final class TaxCalculationService
         
         $rate = $this->getTerRate($category, $grossAmount);
         
-        return round($grossAmount * ($rate / 100));
+        return [
+            'tax_amount' => (float) round($grossAmount * ($rate / 100)),
+            'rate' => (float) ($rate / 100),
+            'category' => $category
+        ];
     }
 
     /**
