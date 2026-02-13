@@ -10,40 +10,45 @@ final class ThrCalculationPolicy
 {
     /**
      * Calculate THR for permanent employees
-     * Rule: Full salary for >= 12 months, prorated for < 12 months
+     * Rule: (Basic Salary + Fixed Allowance) for >= 12 months, prorated for < 12 months
      */
-    public function calculatePermanentEmployee(float $baseSalary, EmployeeTenure $tenure): float
+    public function calculatePermanentEmployee(float $monthlyFixedPay, EmployeeTenure $tenure): float
     {
         if ($tenure->hasWorkedFullYear()) {
-            return $baseSalary; // Full THR
+            return $monthlyFixedPay;
         }
 
-        return $tenure->getProrationFactor() * $baseSalary;
+        return $tenure->getProrationFactor() * $monthlyFixedPay;
     }
 
     /**
      * Calculate THR for contract employees
-     * Rule: Always prorated based on months worked (minimum 1 month)
+     * Rule: Prorated based on months worked (minimum 1 month)
      */
-    public function calculateContractEmployee(float $baseSalary, EmployeeTenure $tenure): float
+    public function calculateContractEmployee(float $monthlyFixedPay, EmployeeTenure $tenure): float
     {
-        return $tenure->getProrationFactor() * $baseSalary;
+        return $tenure->getProrationFactor() * $monthlyFixedPay;
     }
 
     /**
      * Calculate THR for daily/freelance employees
-     * Rule: Based on actual working days vs total days in year
+     * Rule: Per Permenaker 6/2016
+     * - Worked >= 12 months: Average of last 12 months
+     * - Worked < 12 months: Average of total months worked
      */
     public function calculateDailyEmployee(
-        float $monthlySalary, 
-        int $actualWorkDays, 
-        int $totalWorkingDaysInYear = 365
+        float $averageMonthlySalary, 
+        EmployeeTenure $tenure
     ): float {
-        if ($actualWorkDays <= 0 || $totalWorkingDaysInYear <= 0) {
+        if (!$tenure->hasWorkedAtLeastOneMonth()) {
             return 0;
         }
 
-        return ($actualWorkDays / $totalWorkingDaysInYear) * $monthlySalary;
+        if ($tenure->hasWorkedFullYear()) {
+            return $averageMonthlySalary;
+        }
+
+        return $tenure->getProrationFactor() * $averageMonthlySalary;
     }
 
     /**
@@ -52,7 +57,7 @@ final class ThrCalculationPolicy
     public function generateCalculationNotes(
         string $employeeType, 
         EmployeeTenure $tenure, 
-        float $baseSalary, 
+        float $basePay, 
         float $thrAmount
     ): string {
         $typeLabel = $this->getEmployeeTypeLabel($employeeType);
@@ -62,15 +67,13 @@ final class ThrCalculationPolicy
             return "{$typeLabel} - Tidak berhak THR (masa kerja kurang dari 1 bulan)";
         }
 
-        if ($tenure->hasWorkedFullYear() && $employeeType === 'permanent') {
-            return "{$typeLabel} - THR penuh (masa kerja {$monthsWorkedFormatted})";
+        $salaryLabel = in_array($employeeType, ['daily', 'freelance']) ? 'Rata-rata gaji' : 'Gaji + Tunjangan Tetap';
+
+        if ($tenure->hasWorkedFullYear()) {
+            return "{$typeLabel} - THR penuh (masa kerja {$monthsWorkedFormatted}). {$salaryLabel}: Rp " . number_format($basePay, 0, ',', '.');
         }
 
-        $calculation = match ($employeeType) {
-            'daily', 'freelance' => "THR = (Hari kerja / 365) × Gaji bulanan",
-            default => "THR = ({$monthsWorkedFormatted} / 12) × Rp " . number_format($baseSalary, 0, ',', '.')
-        };
-
+        $calculation = "THR = ({$monthsWorkedFormatted} / 12) × {$salaryLabel}";
         $resignedStatus = $tenure->isResigned ? ' (Karyawan yang mengundurkan diri)' : '';
         
         return "{$typeLabel}{$resignedStatus} - {$calculation} = Rp " . number_format($thrAmount, 0, ',', '.');

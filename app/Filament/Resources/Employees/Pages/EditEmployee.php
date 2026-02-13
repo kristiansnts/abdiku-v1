@@ -14,9 +14,10 @@ final class EditEmployee extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // Load the current role from Spatie roles
+        // Load the current role and email from User record
         if ($this->record->user_id && $this->record->user) {
             $data['user_role'] = $this->record->user->roles->first()?->name ?? 'employee';
+            $data['email'] = $this->record->user->email;
         }
 
         return $data;
@@ -24,11 +25,22 @@ final class EditEmployee extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Handle role change if user_role is set in the form state
-        $userRole = $this->form->getRawState()['user_role'] ?? null;
+        $rawState = $this->form->getRawState();
+        $userRole = $rawState['user_role'] ?? null;
+        $email = $rawState['email'] ?? null;
 
-        if ($userRole && $this->record->user_id && auth()->user()?->hasRole('owner')) {
-            $this->record->user->syncRoles([$userRole]);
+        if ($this->record->user_id && ($userRole || $email)) {
+            $user = $this->record->user;
+
+            // Handle role change
+            if ($userRole && auth()->user()?->hasRole('owner')) {
+                $user->syncRoles([$userRole]);
+            }
+
+            // Handle email change
+            if ($email && $user->email !== $email) {
+                $user->update(['email' => $email]);
+            }
         }
 
         return $data;

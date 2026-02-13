@@ -53,13 +53,36 @@ class EmployeeCompensation extends Model
         return $this->effective_to === null;
     }
 
+    public function getFixedAllowancesSum(): float
+    {
+        if (empty($this->allowances)) return 0;
+        
+        $sum = 0;
+        foreach ($this->allowances as $key => $value) {
+            // Assume allowance is fixed unless key indicates it's variable (e.g. meal, transport)
+            if (!in_array(strtolower($key), ['meal', 'transport', 'attendance'])) {
+                $sum += (float) $value;
+            }
+        }
+        return $sum;
+    }
+
+    public function getVariableAllowancesSum(): float
+    {
+        if (empty($this->allowances)) return 0;
+        
+        $sum = 0;
+        foreach ($this->allowances as $key => $value) {
+            if (in_array(strtolower($key), ['meal', 'transport', 'attendance'])) {
+                $sum += (float) $value;
+            }
+        }
+        return $sum;
+    }
+
     public function getTotalAllowancesAttribute(): float
     {
-        if (empty($this->allowances)) {
-            return 0;
-        }
-
-        return (float) array_sum($this->allowances);
+        return $this->getFixedAllowancesSum() + $this->getVariableAllowancesSum();
     }
 
     public function getTotalCompensationAttribute(): float

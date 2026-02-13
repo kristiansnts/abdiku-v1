@@ -43,9 +43,9 @@ final class ThrDomainService
         $tenure = EmployeeTenure::fromDates($joinDate, $calculationDate, $resignDate);
 
         // Check eligibility
-        if (!$this->eligibilityPolicy->isEligible($tenure)) {
+        if (!$this->eligibilityPolicy->isEligible($tenure, $employeeType, $calculationDate)) {
             return ThrCalculationResult::notEligible(
-                $this->eligibilityPolicy->getIneligibilityReason($tenure),
+                $this->eligibilityPolicy->getIneligibilityReason($tenure, $employeeType, $calculationDate),
                 $tenure
             );
         }

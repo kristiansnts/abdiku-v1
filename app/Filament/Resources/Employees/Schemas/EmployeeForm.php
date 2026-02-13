@@ -26,7 +26,9 @@ final class EmployeeForm
                     ->label('ID Karyawan')
                     ->maxLength(50)
                     ->nullable()
-                    ->unique('employees', 'employee_id', ignoreRecord: true)
+                    ->unique('employees', 'employee_id', ignoreRecord: true, modifyRuleUsing: function ($rule, $get) {
+                        return $rule->where('company_id', $get('company_id') ?? auth()->user()?->company_id);
+                    })
                     ->helperText('Nomor identifikasi karyawan (opsional)'),
 
                 Select::make('company_id')
@@ -42,8 +44,9 @@ final class EmployeeForm
                     ->email()
                     ->required()
                     ->maxLength(255)
-                    ->unique('users', 'email', modifyRuleUsing: function ($rule, $get) {
-                        return $rule->where('company_id', $get('company_id') ?? auth()->user()?->company_id);
+                    ->unique('users', 'email', modifyRuleUsing: function ($rule, $get, $record) {
+                        return $rule->where('company_id', $get('company_id') ?? auth()->user()?->company_id)
+                            ->when($record?->user_id, fn($q) => $q->ignore($record->user_id));
                     })
                     ->dehydrated(false)
                     ->helperText('Digunakan untuk login dan pengiriman undangan'),
@@ -89,6 +92,41 @@ final class EmployeeForm
                     ->nullable()
                     ->native(false)
                     ->helperText('Kosongkan jika masih aktif'),
+
+                Section::make('Informasi Legal & Pajak')
+                    ->description('Data mandatory untuk perhitungan PPh21 dan BPJS')
+                    ->schema([
+                        Select::make('ptkp_status')
+                            ->label('Status PTKP')
+                            ->options([
+                                'TK/0' => 'TK/0 (Tidak Kawin, 0 Tanggungan)',
+                                'TK/1' => 'TK/1 (Tidak Kawin, 1 Tanggungan)',
+                                'TK/2' => 'TK/2 (Tidak Kawin, 2 Tanggungan)',
+                                'TK/3' => 'TK/3 (Tidak Kawin, 3 Tanggungan)',
+                                'K/0' => 'K/0 (Kawin, 0 Tanggungan)',
+                                'K/1' => 'K/1 (Kawin, 1 Tanggungan)',
+                                'K/2' => 'K/2 (Kawin, 2 Tanggungan)',
+                                'K/3' => 'K/3 (Kawin, 3 Tanggungan)',
+                            ])
+                            ->required()
+                            ->native(false),
+
+                        TextInput::make('npwp')
+                            ->label('Nomor NPWP')
+                            ->maxLength(20),
+
+                        TextInput::make('nik')
+                            ->label('Nomor NIK (KTP)')
+                            ->maxLength(20),
+
+                        TextInput::make('bpjs_kesehatan_number')
+                            ->label('No. BPJS Kesehatan')
+                            ->maxLength(30),
+
+                        TextInput::make('bpjs_ketenagakerjaan_number')
+                            ->label('No. BPJS Ketenagakerjaan')
+                            ->maxLength(30),
+                    ])->columns(2),
 
                 Section::make('Pengaturan Akun')
                     ->description('Kelola peran dan hak akses pengguna')

@@ -74,6 +74,11 @@ final class EmployeesTable
                     })
                     ->sortable(),
 
+                TextColumn::make('ptkp_status')
+                    ->label('PTKP')
+                    ->placeholder('Belum diatur')
+                    ->toggleable(),
+
                 TextColumn::make('join_date')
                     ->label('Tanggal Bergabung')
                     ->date('d M Y')

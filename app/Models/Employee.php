@@ -27,6 +27,11 @@ class Employee extends Model
         'join_date',
         'resign_date',
         'status',
+        'ptkp_status',
+        'npwp',
+        'nik',
+        'bpjs_kesehatan_number',
+        'bpjs_ketenagakerjaan_number',
     ];
 
     protected function casts(): array
