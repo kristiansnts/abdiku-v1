@@ -15,6 +15,17 @@ final class ViewEmployee extends ViewRecord
 {
     protected static string $resource = EmployeeResource::class;
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        // Load the current role and email from User record
+        if ($this->record->user_id && $this->record->user) {
+            $data['user_role'] = $this->record->user->roles->first()?->name ?? 'employee';
+            $data['email'] = $this->record->user->email;
+        }
+
+        return $data;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

@@ -26,7 +26,9 @@ final class EmployeeForm
                     ->label('ID Karyawan')
                     ->maxLength(50)
                     ->nullable()
-                    ->unique('employees', 'employee_id', ignoreRecord: true)
+                    ->unique('employees', 'employee_id', ignoreRecord: true, modifyRuleUsing: function ($rule, $get) {
+                        return $rule->where('company_id', $get('company_id') ?? auth()->user()?->company_id);
+                    })
                     ->helperText('Nomor identifikasi karyawan (opsional)'),
 
                 Select::make('company_id')
@@ -42,8 +44,9 @@ final class EmployeeForm
                     ->email()
                     ->required()
                     ->maxLength(255)
-                    ->unique('users', 'email', modifyRuleUsing: function ($rule, $get) {
-                        return $rule->where('company_id', $get('company_id') ?? auth()->user()?->company_id);
+                    ->unique('users', 'email', modifyRuleUsing: function ($rule, $get, $record) {
+                        return $rule->where('company_id', $get('company_id') ?? auth()->user()?->company_id)
+                            ->when($record?->user_id, fn($q) => $q->ignore($record->user_id));
                     })
                     ->dehydrated(false)
                     ->helperText('Digunakan untuk login dan pengiriman undangan'),
@@ -100,14 +103,14 @@ final class EmployeeForm
                                 'TK/1' => 'TK/1 (Tidak Kawin, 1 Tanggungan)',
                                 'TK/2' => 'TK/2 (Tidak Kawin, 2 Tanggungan)',
                                 'TK/3' => 'TK/3 (Tidak Kawin, 3 Tanggungan)',
-                                'K/0'  => 'K/0 (Kawin, 0 Tanggungan)',
-                                'K/1'  => 'K/1 (Kawin, 1 Tanggungan)',
-                                'K/2'  => 'K/2 (Kawin, 2 Tanggungan)',
-                                'K/3'  => 'K/3 (Kawin, 3 Tanggungan)',
+                                'K/0' => 'K/0 (Kawin, 0 Tanggungan)',
+                                'K/1' => 'K/1 (Kawin, 1 Tanggungan)',
+                                'K/2' => 'K/2 (Kawin, 2 Tanggungan)',
+                                'K/3' => 'K/3 (Kawin, 3 Tanggungan)',
                             ])
                             ->required()
                             ->native(false),
-                        
+
                         TextInput::make('npwp')
                             ->label('Nomor NPWP')
                             ->maxLength(20),
