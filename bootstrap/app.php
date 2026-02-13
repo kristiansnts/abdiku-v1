@@ -33,29 +33,4 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 401);
             }
         });
-
-        $exceptions->render(function (AttendanceException $e, Request $request) {
-            if ($request->expectsJson() || $request->is('api/*')) {
-                return response()->json([
-                    'success' => false,
-                    'error' => [
-                        'code' => $e->errorCode,
-                        'message' => $e->getMessage(),
-                    ],
-                ], $e->statusCode);
-            }
-        });
-
-        $exceptions->render(function (DeviceException $e, Request $request) {
-            if ($request->expectsJson() || $request->is('api/*')) {
-                return response()->json([
-                    'success' => false,
-                    'error' => [
-                        'code' => $e->errorCode,
-                        'message' => $e->getMessage(),
-                        'data' => $e->data,
-                    ],
-                ], $e->statusCode);
-            }
-        });
     })->create();

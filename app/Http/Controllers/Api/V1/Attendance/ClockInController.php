@@ -22,58 +22,44 @@ class ClockInController extends Controller
 
     public function __invoke(ClockInRequest $request): JsonResponse
     {
-        try {
-            $employee = $request->user()->employee;
+        $employee = $request->user()->employee;
 
-            Log::info('Clock-in request received', [
-                'employee_id' => $employee->id,
-                'user_id' => $request->user()->id,
-            ]);
+        Log::info('Clock-in request received', [
+            'employee_id' => $employee->id,
+            'user_id' => $request->user()->id,
+        ]);
 
-            // Check if today is a holiday
-            $holiday = Holiday::where('company_id', $employee->company_id)
-                ->where('date', now()->toDateString())
-                ->first();
+        // Check if today is a holiday
+        $holiday = Holiday::where('company_id', $employee->company_id)
+            ->where('date', now()->toDateString())
+            ->first();
 
-            if ($holiday !== null) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Tidak dapat clock in. Hari ini adalah hari libur: {$holiday->name}",
-                    'error' => 'holiday',
-                ], 422);
-            }
-
-            $data = ClockInData::fromArray($request->validated());
-
-            $attendance = $this->clockInService->execute($employee, $data);
-
-            $message = $attendance->isPending()
-                ? 'Clock in berhasil. Menunggu verifikasi karena lokasi di luar area.'
-                : 'Clock in berhasil.';
-
-            Log::info('Clock-in successful', [
-                'employee_id' => $employee->id,
-                'attendance_id' => $attendance->id,
-                'status' => $attendance->isPending() ? 'pending' : 'approved',
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'data' => new AttendanceRawResource($attendance),
-                'message' => $message,
-            ], 201);
-        } catch (\Exception $e) {
-            Log::error('Clock-in failed', [
-                'employee_id' => $request->user()->employee->id ?? null,
-                'user_id' => $request->user()->id ?? null,
-                'error' => $e->getMessage(),
-            ]);
-
+        if ($holiday !== null) {
             return response()->json([
                 'success' => false,
-                'message' => 'Clock in gagal. Silakan coba lagi.',
-                'error' => $e->getMessage(),
-            ], 500);
+                'message' => "Tidak dapat clock in. Hari ini adalah hari libur: {$holiday->name}",
+                'error' => 'holiday',
+            ], 422);
         }
+
+        $data = ClockInData::fromArray($request->validated());
+
+        $attendance = $this->clockInService->execute($employee, $data);
+
+        $message = $attendance->isPending()
+            ? 'Clock in berhasil. Menunggu verifikasi karena lokasi di luar area.'
+            : 'Clock in berhasil.';
+
+        Log::info('Clock-in successful', [
+            'employee_id' => $employee->id,
+            'attendance_id' => $attendance->id,
+            'status' => $attendance->isPending() ? 'pending' : 'approved',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => new AttendanceRawResource($attendance),
+            'message' => $message,
+        ], 201);
     }
 }
