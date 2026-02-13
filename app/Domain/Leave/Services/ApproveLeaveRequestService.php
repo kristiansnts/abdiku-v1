@@ -46,7 +46,7 @@ class ApproveLeaveRequestService
                     'company_id' => $request->employee->company_id,
                     'employee_id' => $request->employee_id,
                     'date' => $date->format('Y-m-d'),
-                    'leave_type' => $request->leave_type,
+                    'leave_type_id' => $request->leave_type_id,
                     'approved_by' => $approver->id,
                 ]);
             }

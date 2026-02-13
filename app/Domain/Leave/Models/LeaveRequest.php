@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Domain\Leave\Models;
 
 use App\Domain\Leave\Enums\LeaveRequestStatus;
-use App\Domain\Leave\Enums\LeaveType;
 use App\Models\Employee;
 use App\Models\User;
 use Carbon\Carbon;
@@ -18,7 +17,7 @@ class LeaveRequest extends Model
 {
     protected $fillable = [
         'employee_id',
-        'leave_type',
+        'leave_type_id',
         'start_date',
         'end_date',
         'total_days',
@@ -30,7 +29,6 @@ class LeaveRequest extends Model
     ];
 
     protected $casts = [
-        'leave_type' => LeaveType::class,
         'status' => LeaveRequestStatus::class,
         'start_date' => 'date',
         'end_date' => 'date',
@@ -40,6 +38,11 @@ class LeaveRequest extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function leaveType(): BelongsTo
+    {
+        return $this->belongsTo(LeaveType::class);
     }
 
     public function approver(): BelongsTo
