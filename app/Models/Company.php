@@ -22,6 +22,13 @@ class Company extends Model
         'email',
         'logo_path',
         'npwp',
+        'is_onboarded',
+        'auto_sync_holidays',
+    ];
+
+    protected $casts = [
+        'is_onboarded' => 'boolean',
+        'auto_sync_holidays' => 'boolean',
     ];
 
     public function users(): HasMany

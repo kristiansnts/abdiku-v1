@@ -64,7 +64,9 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                \App\Http\Middleware\RedirectIfOnboardingNotFinished::class,
             ])
+            ->registration(\App\Filament\Pages\Auth\Register::class)
             ->databaseNotifications()
             ->databaseNotificationsPolling('5s')
             ->renderHook(
