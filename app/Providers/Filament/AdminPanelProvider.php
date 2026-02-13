@@ -69,6 +69,7 @@ class AdminPanelProvider extends PanelProvider
             ->registration(\App\Filament\Pages\Auth\Register::class)
             ->databaseNotifications()
             ->databaseNotificationsPolling('5s')
+            ->sidebarCollapsibleOnDesktop(true)
             ->renderHook(
                 'panels::head.end',
                 fn(): string => Blade::render('

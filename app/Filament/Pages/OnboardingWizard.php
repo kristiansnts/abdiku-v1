@@ -2,10 +2,12 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Forms\Components\LocationMapPicker;
 use App\Models\Company;
 use App\Domain\Attendance\Models\ShiftPolicy;
 use App\Domain\Attendance\Models\WorkPattern;
 use App\Domain\Leave\Services\IndonesiaHolidayService;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
@@ -14,6 +16,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Wizard;
 use Filament\Forms\Components\Wizard\Step;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -29,14 +32,20 @@ class OnboardingWizard extends Page
     public function mount(): void
     {
         $company = Auth::user()->company;
-        
+
         if ($company->is_onboarded) {
             redirect('/admin');
         }
 
+        $location = $company->locations()->first();
+
         $this->form->fill([
             'company_name' => $company->name,
-            'address' => $company->address,
+            'location_name' => $location?->name ?? '',
+            'address' => $location?->address ?? '',
+            'latitude' => $location?->latitude ?? -6.2297,
+            'longitude' => $location?->longitude ?? 106.8164,
+            'geofence_radius_meters' => $location?->geofence_radius_meters ?? 100,
             'npwp' => $company->npwp,
             'shift_name' => 'Shift Reguler',
             'start_time' => '08:00',
@@ -54,10 +63,47 @@ class OnboardingWizard extends Page
                     Step::make('Profil Perusahaan')
                         ->description('Lengkapi data dasar bisnis Anda')
                         ->schema([
-                            TextInput::make('company_name')->required()->label('Nama Perusahaan'),
-                            TextInput::make('address')->required()->label('Alamat Kantor'),
-                            TextInput::make('npwp')->label('NPWP Perusahaan (Opsional)'),
+                            TextInput::make('company_name')
+                                ->required()
+                                ->label('Nama Perusahaan'),
+                            TextInput::make('npwp')
+                                ->label('NPWP Perusahaan (Opsional)'),
                         ]),
+
+                    Step::make('Nama Lokasi Kantor')
+                        ->description('Tentukan nama lokasi kantor Anda')
+                        ->schema([
+                            TextInput::make('location_name')
+                                ->required()
+                                ->label('Nama Lokasi')
+                                ->placeholder('Contoh: Kantor Pusat Jakarta')
+                                ->helperText('Masukkan nama lokasi kantor Anda'),
+                        ]),
+
+                    Step::make('Alamat & Peta Lokasi')
+                        ->description('Tentukan alamat dan posisi kantor di peta')
+                        ->schema([
+                            TextInput::make('address')
+                                ->required()
+                                ->label('Alamat Lengkap')
+                                ->reactive()
+                                ->live()
+                                ->columnSpanFull(),
+
+                            LocationMapPicker::make('location_data')
+                                ->label('Pilih Lokasi di Peta')
+                                ->latitude(fn(Get $get) => $get('latitude'))
+                                ->longitude(fn(Get $get) => $get('longitude'))
+                                ->radius(fn(Get $get) => $get('geofence_radius_meters'))
+                                ->address(fn(Get $get) => $get('address'))
+                                ->dehydrated(false)
+                                ->columnSpanFull(),
+
+                            Hidden::make('latitude')->default(-6.2297),
+                            Hidden::make('longitude')->default(106.8164),
+                            Hidden::make('geofence_radius_meters')->default(100),
+                        ]),
+
                     Step::make('Aturan Jam Kerja')
                         ->description('Tentukan jam masuk dan pulang default')
                         ->schema([
@@ -65,6 +111,7 @@ class OnboardingWizard extends Page
                             TimePicker::make('start_time')->required()->label('Jam Masuk'),
                             TimePicker::make('end_time')->required()->label('Jam Pulang'),
                         ]),
+
                     Step::make('Pola Kerja')
                         ->description('Hari apa saja karyawan Anda bekerja?')
                         ->schema([
@@ -82,6 +129,7 @@ class OnboardingWizard extends Page
                                 ->required()
                                 ->label('Hari Kerja Efektif'),
                         ]),
+
                     Step::make('Otomatisasi Libur')
                         ->description('Gunakan kalender libur nasional otomatis')
                         ->schema([
@@ -105,13 +153,29 @@ class OnboardingWizard extends Page
             // 1. Update Company
             $company->update([
                 'name' => $state['company_name'],
-                'address' => $state['address'],
                 'npwp' => $state['npwp'],
                 'auto_sync_holidays' => $state['auto_sync_holidays'],
                 'is_onboarded' => true,
             ]);
 
-            // 2. Create Default Shift
+            // 2. Create or Update Location
+            $location = $company->locations()->first();
+            $locationData = [
+                'name' => $state['location_name'],
+                'address' => $state['address'],
+                'latitude' => $state['latitude'],
+                'longitude' => $state['longitude'],
+                'geofence_radius_meters' => $state['geofence_radius_meters'],
+                'is_default' => true,
+            ];
+
+            if ($location) {
+                $location->update($locationData);
+            } else {
+                $company->locations()->create($locationData);
+            }
+
+            // 3. Create Default Shift
             ShiftPolicy::create([
                 'company_id' => $company->id,
                 'name' => $state['shift_name'],
@@ -120,14 +184,14 @@ class OnboardingWizard extends Page
                 'late_after_minutes' => 15,
             ]);
 
-            // 3. Create Work Pattern
+            // 4. Create Work Pattern
             WorkPattern::create([
                 'company_id' => $company->id,
                 'name' => 'Pola Kerja Default',
                 'working_days' => $state['work_days'],
             ]);
 
-            // 4. Initial Holiday Sync if enabled
+            // 5. Initial Holiday Sync if enabled
             if ($state['auto_sync_holidays']) {
                 $service = app(IndonesiaHolidayService::class);
                 $service->distributeToTenants();
