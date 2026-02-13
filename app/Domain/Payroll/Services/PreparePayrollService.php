@@ -74,6 +74,14 @@ class PreparePayrollService
 
     private function classifyDay(PayrollPeriod $period, Employee $employee, string $date): void
     {
+        $carbonDate = \Carbon\Carbon::parse($date);
+        
+        // Get the work assignment active for this date
+        $assignment = $employee->getWorkAssignmentOn($carbonDate);
+        $isWorkingDay = $assignment && $assignment->workPattern 
+            ? $assignment->workPattern->isWorkingDay($carbonDate)
+            : $carbonDate->isWeekday();
+
         $leave = LeaveRecord::where('employee_id', $employee->id)
             ->where('date', $date)
             ->first();
@@ -93,6 +101,10 @@ class PreparePayrollService
 
         $classification = $this->determineClassification($attendance, $leave, $holiday, $correction);
         $deduction = $this->determineDeduction($classification);
+        
+        // A day is only payable if it's a valid working day OR a paid holiday/leave
+        $payable = $this->isPayable($classification) && ($isWorkingDay || $leave !== null || $holiday !== null);
+
         AttendanceDecision::updateOrCreate(
             [
                 'payroll_period_id' => $period->id,
@@ -101,7 +113,7 @@ class PreparePayrollService
             ],
             [
                 'classification' => $classification,
-                'payable' => $this->isPayable($classification),
+                'payable' => $payable,
                 'deduction_type' => $deduction['type'],
                 'deduction_value' => $deduction['value'],
                 'rule_version' => $period->rule_version,
