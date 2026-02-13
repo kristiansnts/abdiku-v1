@@ -8,11 +8,9 @@ use App\Filament\Forms\Components\LocationMapPicker;
 use App\Models\Company;
 use App\Models\Department;
 use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
@@ -26,7 +24,6 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
-use Illuminate\Support\Arr;
 
 class CompanySettings extends Page implements HasForms, HasTable
 {
@@ -70,23 +67,24 @@ class CompanySettings extends Page implements HasForms, HasTable
         if (!$company) {
             $this->form->fill([
                 'name' => '',
-                'locations' => [],
+                'location_name' => '',
+                'address' => '',
+                'latitude' => -6.2297,
+                'longitude' => 106.8164,
+                'geofence_radius_meters' => 100,
             ]);
             return;
         }
 
         // Load existing company data
+        $location = $company->locations()->first();
         $this->form->fill([
             'name' => $company->name,
-            'locations' => $company->locations->map(fn($l) => [
-                'id' => $l->id,
-                'name' => $l->name,
-                'address' => $l->address,
-                'latitude' => $l->latitude,
-                'longitude' => $l->longitude,
-                'geofence_radius_meters' => $l->geofence_radius_meters,
-                'is_default' => $l->is_default,
-            ])->toArray(),
+            'location_name' => $location?->name ?? '',
+            'address' => $location?->address ?? '',
+            'latitude' => $location?->latitude ?? -6.2297,
+            'longitude' => $location?->longitude ?? 106.8164,
+            'geofence_radius_meters' => $location?->geofence_radius_meters ?? 100,
         ]);
     }
 
@@ -103,51 +101,36 @@ class CompanySettings extends Page implements HasForms, HasTable
                     ]),
 
                 Section::make('Lokasi Kantor')
-                    ->description('Kelola lokasi kantor untuk presensi geofence')
+                    ->description('Atur lokasi kantor untuk presensi geofence')
                     ->schema([
-                        Repeater::make('locations')
-                            ->label('')
-                            ->schema([
-                                TextInput::make('name')
-                                    ->label('Nama Lokasi')
-                                    ->placeholder('Contoh: Kantor Pusat Jakarta')
-                                    ->maxLength(255)
-                                    ->required()
-                                    ->reactive()
-                                    ->columnSpanFull(),
+                        TextInput::make('location_name')
+                            ->label('Nama Lokasi')
+                            ->placeholder('Contoh: Kantor Pusat Jakarta')
+                            ->maxLength(255)
+                            ->required()
+                            ->columnSpanFull(),
 
-                                TextInput::make('address')
-                                    ->label('Alamat')
-                                    ->maxLength(500)
-                                    ->reactive()
-                                    ->live(onBlur: true)
-                                    ->columnSpanFull(),
+                        TextInput::make('address')
+                            ->label('Alamat')
+                            ->maxLength(500)
+                            ->reactive()
+                            ->visible(fn(Get $get) => filled($get('location_name')))
+                            ->live()
+                            ->columnSpanFull(),
 
-                                LocationMapPicker::make('location_data')
-                                    ->label('Pilih Lokasi di Peta')
-                                    ->latitude(fn(Get $get) => $get('latitude'))
-                                    ->longitude(fn(Get $get) => $get('longitude'))
-                                    ->radius(fn(Get $get) => $get('geofence_radius_meters'))
-                                    ->address(fn(Get $get) => $get('address'))
-                                    ->dehydrated(false)
-                                    ->columnSpanFull(),
+                        LocationMapPicker::make('location_data')
+                            ->label('Pilih Lokasi di Peta')
+                            ->visible(fn(Get $get) => filled($get('location_name')))
+                            ->latitude(fn(Get $get) => $get('latitude'))
+                            ->longitude(fn(Get $get) => $get('longitude'))
+                            ->radius(fn(Get $get) => $get('geofence_radius_meters'))
+                            ->address(fn(Get $get) => $get('address'))
+                            ->dehydrated(false)
+                            ->columnSpanFull(),
 
-                                Hidden::make('id'),
-                                Hidden::make('latitude')->default(-6.2297),
-                                Hidden::make('longitude')->default(106.8164),
-                                Hidden::make('geofence_radius_meters')->default(100),
-
-                                Toggle::make('is_default')
-                                    ->label('Lokasi Utama')
-                                    ->helperText('Tandai sebagai lokasi utama perusahaan')
-                                    ->default(false),
-                            ])
-                            ->columns(1)
-                            ->itemLabel(fn(array $state): ?string => $state['name'] ?? 'Lokasi Baru')
-                            ->addActionLabel('Tambah Lokasi')
-                            ->reorderable()
-                            ->collapsible()
-                            ->defaultItems(0),
+                        Hidden::make('latitude')->default(-6.2297),
+                        Hidden::make('longitude')->default(106.8164),
+                        Hidden::make('geofence_radius_meters')->default(100),
                     ]),
             ])
             ->statePath('data');
@@ -178,25 +161,31 @@ class CompanySettings extends Page implements HasForms, HasTable
             $company->update(['name' => $data['name']]);
         }
 
-        // Handle locations (both for new and existing companies)
-        $submittedIds = collect($data['locations'])->pluck('id')->filter()->values()->toArray();
-        $company->locations()->whereNotIn('id', $submittedIds)->delete();
+        // Handle single location
+        $location = $company->locations()->first();
+        $locationData = [
+            'name' => $data['location_name'],
+            'address' => $data['address'],
+            'latitude' => $data['latitude'],
+            'longitude' => $data['longitude'],
+            'geofence_radius_meters' => $data['geofence_radius_meters'],
+            'is_default' => true, // Always default since there's only one
+        ];
 
-        foreach ($data['locations'] as $location) {
-            $locationData = Arr::except($location, ['id', 'location_data']);
-            if (!empty($location['id'])) {
-                $company->locations()->where('id', $location['id'])->update($locationData);
-            } else {
-                $company->locations()->create($locationData);
-            }
+        if ($location) {
+            // Update existing location
+            $location->update($locationData);
+        } else {
+            // Create new location
+            $company->locations()->create($locationData);
         }
 
-        if ($user->company) {
-            Notification::make()
-                ->title('Pengaturan perusahaan berhasil disimpan')
-                ->success()
-                ->send();
-        }
+        Notification::make()
+            ->title('Pengaturan perusahaan berhasil disimpan')
+            ->success()
+            ->send();
+
+        redirect()->to('/admin/company-settings');
     }
 
     public function table(Table $table): Table
