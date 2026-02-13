@@ -28,6 +28,7 @@ class PayrollRow extends Model
         'employee_id',
         'gross_amount',
         'deduction_amount',
+        'tax_amount',
         'net_amount',
     ];
 
