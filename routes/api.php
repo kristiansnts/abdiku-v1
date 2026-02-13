@@ -53,6 +53,7 @@ Route::prefix('v1')->group(function () {
             Route::post('logout-all', [AuthController::class, 'logoutAllDevices']);
             Route::get('me', [AuthController::class, 'me']);
             Route::get('devices', [AuthController::class, 'devices']);
+            Route::post('set-company', [AuthController::class, 'setCompany']);
         });
 
         // Attendance (requires employee)

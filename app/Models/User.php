@@ -43,6 +43,13 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsTo(Company::class);
     }
 
+    public function companies(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Company::class)
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
     public function employee(): HasOne
     {
         return $this->hasOne(Employee::class);

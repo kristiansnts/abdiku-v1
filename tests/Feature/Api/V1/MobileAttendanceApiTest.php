@@ -89,8 +89,10 @@ class MobileAttendanceApiTest extends TestCase
                         'name',
                         'email',
                         'role',
-                        'company' => ['id', 'name'],
                         'employee' => ['id', 'name', 'join_date', 'status']
+                    ],
+                    'companies' => [
+                        '*' => ['id', 'name', 'role']
                     ],
                     'device' => [
                         'id',

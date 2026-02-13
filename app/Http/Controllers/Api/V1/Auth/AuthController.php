@@ -46,11 +46,18 @@ class AuthController extends Controller
             abilities: ['*'],
         )->plainTextToken;
 
+        $companies = $user->companies()->get()->map(fn($c) => [
+            'id' => $c->id,
+            'name' => $c->name,
+            'role' => $c->pivot->role,
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => [
                 'token' => $token,
-                'user' => new UserResource($user->load('company', 'employee')),
+                'user' => new UserResource($user->load('employee')),
+                'companies' => $companies,
                 'device' => [
                     'id' => $device->id,
                     'device_id' => $device->device_id,
@@ -59,6 +66,37 @@ class AuthController extends Controller
                 ],
             ],
             'message' => 'Login berhasil.',
+        ]);
+    }
+
+    public function setCompany(Request $request): JsonResponse
+    {
+        $request->validate([
+            'company_id' => 'required|exists:companies,id',
+        ]);
+
+        $user = $request->user();
+        $company = $user->companies()->where('companies.id', $request->company_id)->first();
+
+        if (!$company) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak terdaftar di perusahaan ini.',
+            ], 403);
+        }
+
+        // Set active company context (save to token or update user temp state)
+        // For simplicity with Sanctum, we can return the specific role/context 
+        // that the mobile app should store locally.
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'active_company_id' => $company->id,
+                'active_company_name' => $company->name,
+                'role' => $company->pivot->role,
+            ],
+            'message' => "Konteks perusahaan diatur ke {$company->name}.",
         ]);
     }
 
