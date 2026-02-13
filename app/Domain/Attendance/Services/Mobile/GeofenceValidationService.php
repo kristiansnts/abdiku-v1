@@ -12,8 +12,16 @@ class GeofenceValidationService
 {
     private const EARTH_RADIUS_METERS = 6371000;
 
-    public function validate(float $lat, float $lng, Company $company): GeofenceValidationResult
+    public function validate(float $lat, float $lng, Company $company, bool $isMocked = false): GeofenceValidationResult
     {
+        if ($isMocked) {
+            return new GeofenceValidationResult(
+                validated: false,
+                withinGeofence: false,
+                reason: 'Fake GPS/Mock location detected',
+            );
+        }
+
         $locations = $company->locations;
 
         if ($locations->isEmpty()) {

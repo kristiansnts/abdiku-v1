@@ -52,6 +52,7 @@ final readonly class PayslipData
         // Summary
         public float $grossAmount,
         public float $totalDeductions,
+        public float $taxAmount,
         public float $netAmount,
 
         // Metadata
@@ -143,6 +144,7 @@ final readonly class PayslipData
             totalEmployerDeductions: $payrollRow->total_employer_deductions,
             grossAmount: (float) $payrollRow->gross_amount,
             totalDeductions: (float) $payrollRow->deduction_amount,
+            taxAmount: (float) $payrollRow->tax_amount,
             netAmount: (float) $payrollRow->net_amount,
             finalizedAt: $batch->finalized_at?->format('d M Y H:i'),
         );

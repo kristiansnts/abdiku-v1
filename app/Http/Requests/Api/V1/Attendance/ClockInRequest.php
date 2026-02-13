@@ -40,6 +40,7 @@ class ClockInRequest extends FormRequest
             'evidence.geolocation.lat' => ['required', 'numeric', 'between:-90,90'],
             'evidence.geolocation.lng' => ['required', 'numeric', 'between:-180,180'],
             'evidence.geolocation.accuracy' => ['nullable', 'numeric', 'min:0'],
+            'evidence.geolocation.is_mocked' => ['required', 'boolean'],
             'evidence.device' => ['required', 'array'],
             'evidence.device.device_id' => ['required', 'string', 'max:255'],
             'evidence.device.model' => ['required', 'string', 'max:255'],

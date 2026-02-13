@@ -14,6 +14,7 @@ readonly class ClockInData
         public float $latitude,
         public float $longitude,
         public ?float $accuracy,
+        public bool $isMocked,
         public string $deviceId,
         public string $deviceModel,
         public string $deviceOs,
@@ -30,6 +31,7 @@ readonly class ClockInData
             accuracy: isset($data['evidence']['geolocation']['accuracy'])
                 ? (float) $data['evidence']['geolocation']['accuracy']
                 : null,
+            isMocked: (bool) ($data['evidence']['geolocation']['is_mocked'] ?? false),
             deviceId: $data['evidence']['device']['device_id'],
             deviceModel: $data['evidence']['device']['model'],
             deviceOs: $data['evidence']['device']['os'],

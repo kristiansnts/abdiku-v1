@@ -37,12 +37,18 @@ class ClockInService
         $geofenceResult = $this->geofenceService->validate(
             $data->latitude,
             $data->longitude,
-            $company
+            $company,
+            $data->isMocked
         );
 
-        $status = $geofenceResult->withinGeofence === true
-            ? AttendanceStatus::APPROVED
-            : AttendanceStatus::PENDING;
+        if (!$geofenceResult->withinGeofence) {
+            throw new \App\Exceptions\Api\AttendanceException(
+                $geofenceResult->reason ?? 'Lokasi di luar geofence', 
+                422
+            );
+        }
+
+        $status = AttendanceStatus::APPROVED;
 
         return DB::transaction(function () use ($employee, $data, $geofenceResult, $status) {
             $attendance = AttendanceRaw::create([

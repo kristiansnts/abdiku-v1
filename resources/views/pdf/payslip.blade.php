@@ -325,14 +325,27 @@
                                     <td class="amount">Rp {{ number_format($deduction['employee_amount'], 0, ',', '.') }}</td>
                                 </tr>
                                 @endif
+                                @if($payslip->taxAmount > 0)
+                                <tr>
+                                    <td>Pajak (PPh21)</td>
+                                    <td class="amount">Rp {{ number_format($payslip->taxAmount, 0, ',', '.') }}</td>
+                                </tr>
+                                @endif
                             @empty
-                            <tr>
-                                <td colspan="2" style="color: #888; font-style: italic;">Tidak ada potongan</td>
-                            </tr>
+                                @if($payslip->taxAmount > 0)
+                                <tr>
+                                    <td>Pajak (PPh21)</td>
+                                    <td class="amount">Rp {{ number_format($payslip->taxAmount, 0, ',', '.') }}</td>
+                                </tr>
+                                @else
+                                <tr>
+                                    <td colspan="2" style="color: #888; font-style: italic;">Tidak ada potongan</td>
+                                </tr>
+                                @endif
                             @endforelse
                             <tr class="total-row">
                                 <td>Total Potongan</td>
-                                <td class="amount">Rp {{ number_format($payslip->totalDeductions, 0, ',', '.') }}</td>
+                                <td class="amount">Rp {{ number_format($payslip->totalDeductions + $payslip->taxAmount, 0, ',', '.') }}</td>
                             </tr>
                         </table>
                     </div>
