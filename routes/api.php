@@ -45,7 +45,7 @@ Route::prefix('v1')->group(function () {
         ->middleware('signed');
 
     // Authenticated routes
-    Route::middleware(['auth:sanctum'])->group(function () {
+    Route::middleware(['auth:sanctum', 'active_company.required'])->group(function () {
 
         // Auth
         Route::prefix('auth')->group(function () {
