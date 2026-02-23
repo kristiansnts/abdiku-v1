@@ -46,101 +46,49 @@ class CalculatePayrollService
         });
     }
 
+    public function preview($period): array
+    {
+        $period->load('company');
+        if (!$period->company) {
+            throw new \RuntimeException('PayrollPeriod must be associated with a Company');
+        }
+
+        $employees = $period->company->employees()->where('status', 'ACTIVE')->get();
+        $rows = [];
+
+        foreach ($employees as $employee) {
+            $row = $this->computeRowData($period, $employee);
+            if ($row !== null) {
+                $rows[] = $row;
+            }
+        }
+
+        return $rows;
+    }
+
     protected function calculateForEmployee(PayrollBatch $batch, $period, Employee $employee): void
     {
-        // Get active compensation
-        $compensation = $this->getActiveCompensation($employee);
-
-        if (!$compensation) {
-            // Skip employees without compensation
+        $data = $this->computeRowData($period, $employee);
+        if ($data === null) {
             return;
         }
 
-        // Calculate attendance
-        $attendanceData = $this->calculateAttendance($employee, $period);
-        $attendanceCount = $attendanceData['payable_days'];
-        $totalWorkingDays = $attendanceData['total_working_days'];
-
-        // Calculate prorated base salary based on attendance
-        $baseSalary = (float) $compensation->base_salary;
-        if ($totalWorkingDays > 0) {
-            $proratedBaseSalary = ($attendanceCount / $totalWorkingDays) * $baseSalary;
-        } else {
-            $proratedBaseSalary = $baseSalary;
-        }
-
-        // Calculate allowances based on type
-        $fixedAllowances = $compensation->getFixedAllowancesSum();
-        $variableAllowancesPerMonth = $compensation->getVariableAllowancesSum();
-        
-        // Variable allowances (like meal/transport) are paid based on attendance
-        $proratedVariableAllowances = 0;
-        if ($totalWorkingDays > 0) {
-            $proratedVariableAllowances = ($attendanceCount / $totalWorkingDays) * $variableAllowancesPerMonth;
-        }
-
-        $totalAllowances = $fixedAllowances + $proratedVariableAllowances;
-
-        // Get additions for this period
-        $additions = $this->getAdditions($employee, $period);
-        $totalAdditions = $additions->sum('amount');
-
-        $grossAmount = $proratedBaseSalary + $totalAllowances + $totalAdditions;
-
-        // Calculate deductions
-        $deductions = $this->calculateDeductions($employee, $compensation, $grossAmount);
-        $totalEmployeeDeductions = collect($deductions)->sum('employee_amount');
-
-        // Calculate Tax (PPh21)
-        $taxResult = $this->taxService->calculateMonthlyTax($employee, $grossAmount);
-        $taxAmount = $taxResult['tax_amount'];
-
-        // Calculate net (Gross - Deductions - Tax)
-        $netAmount = $grossAmount - $totalEmployeeDeductions - $taxAmount;
-
-        // Audit Trail: Transparansi Hitungan untuk Owner/Admin
-        $auditLog = [
-            'version' => 'Compliance-v1-TER2024',
-            'timestamp' => now()->toDateTimeString(),
-            'breakdown' => [
-                [
-                    'label' => 'Gaji Pokok Prorata',
-                    'formula' => "({$attendanceCount}/{$totalWorkingDays}) * " . number_format($baseSalary),
-                    'result' => $proratedBaseSalary,
-                    'note' => 'Berdasarkan hari kerja efektif karyawan.'
-                ],
-                [
-                    'label' => 'Tunjangan Variabel Prorata',
-                    'formula' => "({$attendanceCount}/{$totalWorkingDays}) * " . number_format($variableAllowancesPerMonth),
-                    'result' => $proratedVariableAllowances,
-                    'note' => 'Makan/Transport dipotong jika absen (Zero-Leakage).'
-                ],
-                [
-                    'label' => 'Kategori TER PPh21',
-                    'formula' => $employee->ptkp_status,
-                    'result' => $taxResult['category'],
-                    'note' => 'Berdasarkan status PTKP terbaru (PP 58/2023).'
-                ],
-                [
-                    'label' => 'Tarif Pajak Efektif',
-                    'formula' => "Bruto " . number_format($grossAmount),
-                    'result' => ($taxResult['rate'] * 100) . '%',
-                    'note' => "Total Pajak: Rp " . number_format($taxAmount)
-                ]
-            ],
-            'legal_references' => [
-                'PP No. 58 Tahun 2023 (PPh21 TER)',
-                'UU HPP No. 7 Tahun 2021',
-                'Permenaker No. 6 Tahun 2016'
-            ]
-        ];
+        [
+            'gross_amount' => $grossAmount,
+            'deduction_amount' => $totalEmployeeDeductions,
+            'tax_amount' => $taxAmount,
+            'net_amount' => $netAmount,
+            'audit_log' => $auditLog,
+            'deductions' => $deductions,
+            'additions' => $additions,
+        ] = $data;
 
         // Create payroll row
         $row = PayrollRow::create([
             'payroll_batch_id' => $batch->id,
             'employee_id' => $employee->id,
             'gross_amount' => $grossAmount,
-            'deduction_amount' => $totalEmployeeDeductions, 
+            'deduction_amount' => $totalEmployeeDeductions,
             'tax_amount' => $taxAmount,
             'net_amount' => $netAmount,
             'audit_log' => $auditLog, // Inject transparency log
@@ -151,8 +99,8 @@ class CalculatePayrollService
             PayrollRowDeduction::create([
                 'payroll_row_id' => $row->id,
                 'deduction_code' => $deduction['code'],
-                'employee_amount' => $deduction['employee_amount'],
-                'employer_amount' => $deduction['employer_amount'],
+                'employee_amount' => $this->money((float) $deduction['employee_amount']),
+                'employer_amount' => $this->money((float) $deduction['employer_amount']),
                 'rule_snapshot' => $deduction['snapshot'],
             ]);
         }
@@ -162,7 +110,7 @@ class CalculatePayrollService
             PayrollRowAddition::create([
                 'payroll_row_id' => $row->id,
                 'addition_code' => $addition->code,
-                'amount' => $addition->amount,
+                'amount' => $this->money((float) $addition->amount),
                 'source_reference' => $addition->id,
                 'description' => $addition->description,
             ]);
@@ -221,18 +169,24 @@ class CalculatePayrollService
             ->get();
     }
 
-    protected function calculateDeductions(Employee $employee, EmployeeCompensation $compensation, float $grossAmount): array
+    protected function calculateDeductions(
+        Employee $employee,
+        EmployeeCompensation $compensation,
+        $period,
+        float $grossAmount
+    ): array
     {
         $companyId = $employee->company_id;
         $deductions = [];
+        $asOf = $period->period_end ?? now();
 
         // Get active deduction rules for company
         $rules = PayrollDeductionRule::query()
             ->where('company_id', $companyId)
-            ->where('effective_from', '<=', now())
-            ->where(function ($query) {
+            ->where('effective_from', '<=', $asOf)
+            ->where(function ($query) use ($asOf) {
                 $query->whereNull('effective_to')
-                    ->orWhere('effective_to', '>=', now());
+                    ->orWhere('effective_to', '>=', $asOf);
             })
             ->get();
 
@@ -248,8 +202,8 @@ class CalculatePayrollService
 
             $deductions[] = [
                 'code' => $rule->code,
-                'employee_amount' => $calculation['employee_amount'],
-                'employer_amount' => $calculation['employer_amount'],
+                'employee_amount' => $this->money((float) $calculation['employee_amount']),
+                'employer_amount' => $this->money((float) $calculation['employer_amount']),
                 'snapshot' => [
                     'rule_id' => $rule->id,
                     'code' => $rule->code,
@@ -259,12 +213,131 @@ class CalculatePayrollService
                     'employer_rate' => (float) $rule->employer_rate,
                     'salary_cap' => $rule->salary_cap ? (float) $rule->salary_cap : null,
                     'calculation_basis' => $basis,
-                    'employee_amount' => $calculation['employee_amount'],
-                    'employer_amount' => $calculation['employer_amount'],
+                    'employee_amount' => $this->money((float) $calculation['employee_amount']),
+                    'employer_amount' => $this->money((float) $calculation['employer_amount']),
                 ],
             ];
         }
 
         return $deductions;
+    }
+
+    private function computeRowData($period, Employee $employee): ?array
+    {
+        // Get active compensation
+        $compensation = $this->getActiveCompensation($employee);
+
+        if (!$compensation) {
+            // Skip employees without compensation
+            return null;
+        }
+
+        // Calculate attendance
+        $attendanceData = $this->calculateAttendance($employee, $period);
+        $attendanceCount = $attendanceData['payable_days'];
+        $totalWorkingDays = $attendanceData['total_working_days'];
+
+        $baseSalaryCents = $this->toCents((float) $compensation->base_salary);
+        $fixedAllowancesCents = $this->toCents((float) $compensation->getFixedAllowancesSum());
+        $variableAllowancesCents = $this->toCents((float) $compensation->getVariableAllowancesSum());
+
+        $proratedBaseSalaryCents = $this->prorateCents($baseSalaryCents, $attendanceCount, $totalWorkingDays);
+        $proratedVariableAllowancesCents = $this->prorateCents(
+            $variableAllowancesCents,
+            $attendanceCount,
+            $totalWorkingDays
+        );
+
+        $totalAllowancesCents = $fixedAllowancesCents + $proratedVariableAllowancesCents;
+
+        // Get additions for this period
+        $additions = $this->getAdditions($employee, $period);
+        $totalAdditionsCents = $this->toCents((float) $additions->sum('amount'));
+
+        $grossCents = $proratedBaseSalaryCents + $totalAllowancesCents + $totalAdditionsCents;
+        $grossAmount = $this->fromCents($grossCents);
+
+        // Calculate deductions
+        $deductions = $this->calculateDeductions($employee, $compensation, $period, $grossAmount);
+        $totalEmployeeDeductionsCents = $this->toCents((float) collect($deductions)->sum('employee_amount'));
+
+        // Calculate Tax (PPh21)
+        $taxResult = $this->taxService->calculateMonthlyTax($employee, $grossAmount, $period->period_end);
+        $taxAmountCents = $this->toCents((float) $taxResult['tax_amount']);
+
+        // Calculate net (Gross - Deductions - Tax)
+        $netCents = $grossCents - $totalEmployeeDeductionsCents - $taxAmountCents;
+
+        $auditLog = [
+            'version' => 'Compliance-v1-TER2024',
+            'timestamp' => now()->toDateTimeString(),
+            'breakdown' => [
+                [
+                    'label' => 'Gaji Pokok Prorata',
+                    'formula' => "({$attendanceCount}/{$totalWorkingDays}) * " . number_format($this->fromCents($baseSalaryCents)),
+                    'result' => $this->fromCents($proratedBaseSalaryCents),
+                    'note' => 'Berdasarkan hari kerja efektif karyawan.'
+                ],
+                [
+                    'label' => 'Tunjangan Variabel Prorata',
+                    'formula' => "({$attendanceCount}/{$totalWorkingDays}) * " . number_format($this->fromCents($variableAllowancesCents)),
+                    'result' => $this->fromCents($proratedVariableAllowancesCents),
+                    'note' => 'Makan/Transport dipotong jika absen (Zero-Leakage).'
+                ],
+                [
+                    'label' => 'Kategori TER PPh21',
+                    'formula' => $employee->ptkp_status,
+                    'result' => $taxResult['category'],
+                    'note' => 'Berdasarkan status PTKP terbaru (PP 58/2023).'
+                ],
+                [
+                    'label' => 'Tarif Pajak Efektif',
+                    'formula' => "Bruto " . number_format($grossAmount),
+                    'result' => ($taxResult['rate'] * 100) . '%',
+                    'note' => "Total Pajak: Rp " . number_format($this->fromCents($taxAmountCents))
+                ]
+            ],
+            'legal_references' => [
+                'PP No. 58 Tahun 2023 (PPh21 TER)',
+                'UU HPP No. 7 Tahun 2021',
+                'Permenaker No. 6 Tahun 2016'
+            ]
+        ];
+
+        return [
+            'employee_id' => $employee->id,
+            'employee_name' => $employee->name,
+            'gross_amount' => $this->fromCents($grossCents),
+            'deduction_amount' => $this->fromCents($totalEmployeeDeductionsCents),
+            'tax_amount' => $this->fromCents($taxAmountCents),
+            'net_amount' => $this->fromCents($netCents),
+            'audit_log' => $auditLog,
+            'deductions' => $deductions,
+            'additions' => $additions,
+        ];
+    }
+
+    private function money(float $value): float
+    {
+        return round($value, 2);
+    }
+
+    private function toCents(float $amount): int
+    {
+        return (int) round($amount * 100);
+    }
+
+    private function fromCents(int $cents): float
+    {
+        return $cents / 100;
+    }
+
+    private function prorateCents(int $amountCents, int $numerator, int $denominator): int
+    {
+        if ($denominator <= 0) {
+            return $amountCents;
+        }
+
+        return (int) round($amountCents * $numerator / $denominator);
     }
 }

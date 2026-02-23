@@ -31,6 +31,8 @@ class PayrollPeriod extends Model
         'month',
         'rule_version',
         'reviewed_at',
+        'previewed_by',
+        'previewed_at',
         'finalized_by',
         'finalized_at',
     ];
@@ -42,6 +44,7 @@ class PayrollPeriod extends Model
         'year' => 'integer',
         'month' => 'integer',
         'reviewed_at' => 'datetime',
+        'previewed_at' => 'datetime',
         'finalized_at' => 'datetime',
     ];
 
@@ -53,6 +56,11 @@ class PayrollPeriod extends Model
     public function finalizedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'finalized_by');
+    }
+
+    public function previewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'previewed_by');
     }
 
     public function attendanceDecisions(): HasMany

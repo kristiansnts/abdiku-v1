@@ -92,7 +92,7 @@ class ApproveOverrideService
             AttendanceClassification::LATE,
             AttendanceClassification::PAID_LEAVE,
             AttendanceClassification::PAID_SICK,
-            AttendanceClassification::HOLIDAY,
+            AttendanceClassification::HOLIDAY_PAID,
         ], true);
     }
 
@@ -101,7 +101,8 @@ class ApproveOverrideService
         return match ($classification) {
             AttendanceClassification::ABSENT,
             AttendanceClassification::UNPAID_LEAVE,
-            AttendanceClassification::UNPAID_SICK => DeductionType::FULL,
+            AttendanceClassification::UNPAID_SICK,
+            AttendanceClassification::HOLIDAY_UNPAID => DeductionType::FULL,
             default => DeductionType::NONE,
         };
     }

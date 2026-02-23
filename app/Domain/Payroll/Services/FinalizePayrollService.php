@@ -27,20 +27,33 @@ class FinalizePayrollService
         $this->validateState($period);
         $this->validateRole($actor);
         $this->validateNoPendingOverrides($period);
+        $this->validatePreviewed($period);
 
         return DB::transaction(function () use ($period, $actor) {
             $batch = $this->createBatch($period, $actor);
             $this->createRows($period, $batch);
             $this->freezePeriod($period, $actor);
 
-            // Dispatch event for individual payslips
-            $rows = PayrollRow::where('payroll_batch_id', $batch->id)->with('employee')->get();
-            foreach ($rows as $row) {
-                event(new PayslipAvailable($row, $row->employee));
-            }
+            $batchId = $batch->id;
+            $periodId = $period->id;
+            $actorId = $actor->id;
 
-            // Dispatch event for payroll finalization
-            event(new PayrollFinalized($period, $batch, $actor));
+            DB::afterCommit(function () use ($batchId, $periodId, $actorId) {
+                // Dispatch event for individual payslips
+                $rows = PayrollRow::where('payroll_batch_id', $batchId)->with('employee')->get();
+                foreach ($rows as $row) {
+                    event(new PayslipAvailable($row, $row->employee));
+                }
+
+                $period = PayrollPeriod::find($periodId);
+                $batch = PayrollBatch::find($batchId);
+                $actor = User::find($actorId);
+
+                if ($period && $batch && $actor) {
+                    // Dispatch event for payroll finalization
+                    event(new PayrollFinalized($period, $batch, $actor));
+                }
+            });
 
             return $batch;
         });
@@ -85,8 +98,20 @@ class FinalizePayrollService
         }
     }
 
+    private function validatePreviewed(PayrollPeriod $period): void
+    {
+        if ($period->previewed_at === null) {
+            throw new \DomainException('Cannot finalize payroll: preview export has not been generated.');
+        }
+    }
+
     private function createBatch(PayrollPeriod $period, User $actor): PayrollBatch
     {
+        $existing = PayrollBatch::where('payroll_period_id', $period->id)->first();
+        if ($existing) {
+            return $existing;
+        }
+
         return PayrollBatch::create([
             'company_id' => $period->company_id,
             'payroll_period_id' => $period->id,
@@ -98,6 +123,10 @@ class FinalizePayrollService
 
     private function createRows(PayrollPeriod $period, PayrollBatch $batch): void
     {
+        if (PayrollRow::where('payroll_batch_id', $batch->id)->exists()) {
+            return;
+        }
+
         // Use new calculation service with detailed breakdowns
         $this->calculatePayrollService->execute($batch);
 

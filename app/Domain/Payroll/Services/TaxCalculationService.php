@@ -11,7 +11,11 @@ final class TaxCalculationService
     /**
      * Calculate monthly PPh21 using TER (Tarif Efektif Rata-rata) 2024
      */
-    public function calculateMonthlyTax(Employee $employee, float $grossAmount): array
+    public function calculateMonthlyTax(
+        Employee $employee,
+        float $grossAmount,
+        ?\DateTimeInterface $asOf = null
+    ): array
     {
         if ($grossAmount <= 0) {
             return [
@@ -24,7 +28,7 @@ final class TaxCalculationService
         $ptkpStatus = $employee->ptkp_status ?? 'TK/0';
         $category = $this->getTerCategory($ptkpStatus);
         
-        $rate = $this->getTerRate($category, $grossAmount);
+        $rate = $this->getTerRate($category, $grossAmount, $asOf);
         
         return [
             'tax_amount' => (float) round($grossAmount * ($rate / 100)),
@@ -46,28 +50,42 @@ final class TaxCalculationService
         };
     }
 
-    /**
-     * Placeholder for TER 2024 Rate Tables
-     * In a full implementation, this should pull from a database table or config
-     */
-    private function getTerRate(string $category, float $gross): float
+    private function getTerRate(string $category, float $gross, ?\DateTimeInterface $asOf = null): float
     {
-        // Sample simplified rates for Category A (2024 Rules)
-        if ($category === 'A') {
-            if ($gross <= 5400000) return 0;
-            if ($gross <= 5650000) return 0.25;
-            if ($gross <= 5950000) return 0.5;
-            if ($gross <= 6300000) return 0.75;
-            if ($gross <= 6750000) return 1.0;
-            if ($gross <= 7500000) return 1.25;
-            if ($gross <= 8550000) return 1.5;
-            if ($gross <= 9650000) return 1.75;
-            if ($gross <= 10650000) return 2.0;
-            // ... more rates follow ...
-            return 5.0; // Default for higher brackets in this PoC
+        $tables = $this->getTerTableForDate($asOf ?? now());
+        $table = $tables[$category] ?? $tables['A'];
+
+        foreach ($table as [$upper, $rate]) {
+            if ($gross <= $upper) {
+                return $rate;
+            }
         }
 
-        // Default to a safe minimum if category B or C is hit
-        return 2.0;
+        return 34.0;
+    }
+
+    /**
+     * Resolve TER tables by effective date.
+     */
+    private function getTerTableForDate(\DateTimeInterface $asOf): array
+    {
+        $tablesByDate = config('payroll.ter_tables', []);
+        if (!$tablesByDate) {
+            throw new \RuntimeException('TER tables are not configured.');
+        }
+
+        $effectiveDates = array_keys($tablesByDate);
+        sort($effectiveDates);
+
+        $selectedDate = null;
+        foreach ($effectiveDates as $date) {
+            if ($asOf->format('Y-m-d') >= $date) {
+                $selectedDate = $date;
+            }
+        }
+
+        $selectedDate = $selectedDate ?? $effectiveDates[0];
+
+        return $tablesByDate[$selectedDate];
     }
 }

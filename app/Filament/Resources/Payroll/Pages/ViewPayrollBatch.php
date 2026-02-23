@@ -14,14 +14,6 @@ final class ViewPayrollBatch extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        return [
-            Action::make('export')
-                ->label('Export')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->color('info')
-                ->action(function () {
-                    // TODO: Implement export functionality
-                }),
-        ];
+        return [];
     }
 }
