@@ -38,6 +38,8 @@ class FinalizePayrollServiceTest extends TestCase
     {
         // Given: A period in REVIEW state with no pending overrides
         $this->period->state = PayrollState::REVIEW;
+        $this->period->previewed_at = now();
+        $this->period->previewed_by = $this->owner->id;
         $this->period->save();
 
         // When: Finalizing the payroll
@@ -124,6 +126,8 @@ class FinalizePayrollServiceTest extends TestCase
     {
         // Given: A period in REVIEW state
         $this->period->state = PayrollState::REVIEW;
+        $this->period->previewed_at = now();
+        $this->period->previewed_by = $this->owner->id;
         $this->period->save();
 
         // And: An attendance decision

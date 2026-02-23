@@ -130,6 +130,8 @@ class PayrollNotificationTest extends TestCase
         $period = PayrollPeriod::factory()->create([
             'company_id' => $this->company->id,
             'state' => PayrollState::REVIEW,
+            'previewed_at' => now(),
+            'previewed_by' => $this->ownerUser->id,
         ]);
 
         // Create attendance decision
@@ -161,6 +163,8 @@ class PayrollNotificationTest extends TestCase
         $period = PayrollPeriod::factory()->create([
             'company_id' => $this->company->id,
             'state' => PayrollState::REVIEW,
+            'previewed_at' => now(),
+            'previewed_by' => $this->ownerUser->id,
         ]);
 
         $employee2 = Employee::factory()->create([
@@ -229,6 +233,8 @@ class PayrollNotificationTest extends TestCase
         $period = PayrollPeriod::factory()->create([
             'company_id' => $this->company->id,
             'state' => PayrollState::REVIEW,
+            'previewed_at' => now(),
+            'previewed_by' => $this->ownerUser->id,
         ]);
 
         $batch = PayrollBatch::factory()->create([
