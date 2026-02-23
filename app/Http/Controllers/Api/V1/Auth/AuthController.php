@@ -22,9 +22,38 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
-        $user = User::where('email', $request->email)->first();
+        $users = User::where('email', $request->email)->with('company')->get();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        if ($users->isEmpty()) {
+            throw AttendanceException::invalidCredentials();
+        }
+
+        // Validate password against the first matching record
+        if (! Hash::check($request->password, $users->first()->password)) {
+            throw AttendanceException::invalidCredentials();
+        }
+
+        // If multiple companies and no company selected yet, ask the client to choose
+        if ($users->count() > 1 && ! $request->filled('company_id')) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'requires_company_selection' => true,
+                    'companies' => $users->map(fn ($u) => [
+                        'company_id' => $u->company_id,
+                        'company_name' => $u->company?->name ?? '—',
+                    ]),
+                ],
+                'message' => 'Pilih perusahaan untuk melanjutkan.',
+            ]);
+        }
+
+        // Resolve target user: by company_id if provided, otherwise the single result
+        $user = $request->filled('company_id')
+            ? $users->firstWhere('company_id', $request->integer('company_id'))
+            : $users->first();
+
+        if (! $user) {
             throw AttendanceException::invalidCredentials();
         }
 

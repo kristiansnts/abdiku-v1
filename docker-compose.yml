@@ -7,8 +7,31 @@ services:
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
+      - RUN_MIGRATIONS=false
     volumes:
       - storage:/app/storage
+    restart: unless-stopped
+  queue:
+    build: .
+    env_file: .env
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - WAIT_FOR_DB=true
+    volumes:
+      - storage:/app/storage
+    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90"]
+    restart: unless-stopped
+  scheduler:
+    build: .
+    env_file: .env
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - WAIT_FOR_DB=true
+    volumes:
+      - storage:/app/storage
+    command: ["php", "artisan", "schedule:work"]
     restart: unless-stopped
 
 volumes:

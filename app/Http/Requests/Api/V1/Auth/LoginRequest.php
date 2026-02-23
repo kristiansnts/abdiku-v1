@@ -24,6 +24,7 @@ class LoginRequest extends FormRequest
             'device_os' => ['nullable', 'string', 'max:50'],
             'app_version' => ['nullable', 'string', 'max:20'],
             'force_switch' => ['nullable', 'boolean'],
+            'company_id' => ['nullable', 'integer'],
         ];
     }
 

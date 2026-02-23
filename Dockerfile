@@ -13,10 +13,9 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+RUN composer install --no-dev --prefer-dist --optimize-autoloader
 
 COPY . .
-RUN composer dump-autoload --optimize
 
 # Stage 2: Build frontend assets (after composer so we can copy pagination views)
 FROM node:20-alpine AS frontend
@@ -106,5 +105,5 @@ ENV OCTANE_SERVER=frankenphp
 
 EXPOSE 8000
 
-# Run entrypoint script (handles migrations, caching, then starts Octane)
+# Run entrypoint script (handles caching, optional migrations, then starts Octane)
 CMD ["/docker-entrypoint.sh"]

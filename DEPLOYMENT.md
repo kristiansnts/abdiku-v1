@@ -126,6 +126,20 @@ DB_PASSWORD=your-password
 SESSION_DRIVER=database
 CACHE_STORE=database
 QUEUE_CONNECTION=database
+
+# Entrypoint toggles
+# Only enable RUN_MIGRATIONS for one-off deploy jobs or single-instance upgrades.
+RUN_MIGRATIONS=false
+RUN_CACHE=true
+RUN_STORAGE_LINK=true
+RUN_FILAMENT_ASSETS=true
+
+# Entrypoint toggles
+# Only enable RUN_MIGRATIONS for one-off deploy jobs or single-instance upgrades.
+RUN_MIGRATIONS=false
+RUN_CACHE=true
+RUN_STORAGE_LINK=true
+RUN_FILAMENT_ASSETS=true
 ```
 3. Select **Docker** > **Dockerfile**
 
@@ -237,7 +251,7 @@ Since you're using Cloudflare Tunnel:
 
 ## 8. Post-Deployment Commands
 
-After deployment, run these commands via Coolify's terminal or SSH:
+After deployment, run these commands via Coolify's terminal or SSH (one-off on a single instance):
 
 ```bash
 # Run migrations
@@ -257,7 +271,21 @@ php artisan filament:assets
 
 ---
 
-## 9. Health Check
+## 9. Background Workers (Required)
+
+If you use queues or scheduled jobs, you must run them as separate services:
+
+```bash
+# Queue worker
+php artisan queue:work --tries=3 --timeout=90
+
+# Scheduler
+php artisan schedule:work
+```
+
+---
+
+## 10. Health Check
 
 Verify your deployment:
 
