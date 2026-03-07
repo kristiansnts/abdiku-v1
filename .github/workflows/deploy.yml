@@ -14,8 +14,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create .env from secret
-        run: |
-          echo "${{ secrets.ENV_PRODUCTION }}" > .env
+        run: printf '%s' "$ENV_PRODUCTION" > .env
+        env:
+          ENV_PRODUCTION: ${{ secrets.ENV_PRODUCTION }}
 
       - name: Build and restart containers
         run: |
