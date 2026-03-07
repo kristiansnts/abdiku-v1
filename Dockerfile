@@ -13,9 +13,11 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --prefer-dist --optimize-autoloader
+RUN composer install --no-dev --no-scripts --prefer-dist --optimize-autoloader
 
 COPY . .
+
+RUN composer run-script post-autoload-dump 2>/dev/null || true
 
 # Stage 2: Build frontend assets (after composer so we can copy pagination views)
 FROM node:20-alpine AS frontend
