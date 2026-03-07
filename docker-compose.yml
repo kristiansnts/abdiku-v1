@@ -2,37 +2,63 @@ services:
   app:
     build: .
     ports:
-      - "9000:8000"
+      - "9090:8000"
     env_file: .env
     environment:
-      - APP_ENV=production
-      - APP_DEBUG=false
-      - RUN_MIGRATIONS=false
+      APP_ENV: production
+      APP_DEBUG: "false"
+      RUN_MIGRATIONS: "false"
+      RUN_CACHE: "true"
+      RUN_STORAGE_LINK: "true"
+      RUN_FILAMENT_ASSETS: "true"
+      WAIT_FOR_DB: "false"
     volumes:
       - storage:/app/storage
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   queue:
     build: .
     env_file: .env
     environment:
-      - APP_ENV=production
-      - APP_DEBUG=false
-      - WAIT_FOR_DB=true
+      APP_ENV: production
+      APP_DEBUG: "false"
+      RUN_MIGRATIONS: "false"
+      RUN_CACHE: "false"
+      RUN_STORAGE_LINK: "false"
+      RUN_FILAMENT_ASSETS: "false"
+      WAIT_FOR_DB: "false"
     volumes:
       - storage:/app/storage
-    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90"]
+    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3"]
     restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+
   scheduler:
     build: .
     env_file: .env
     environment:
-      - APP_ENV=production
-      - APP_DEBUG=false
-      - WAIT_FOR_DB=true
+      APP_ENV: production
+      APP_DEBUG: "false"
+      RUN_MIGRATIONS: "false"
+      RUN_CACHE: "false"
+      RUN_STORAGE_LINK: "false"
+      RUN_FILAMENT_ASSETS: "false"
+      WAIT_FOR_DB: "false"
     volumes:
       - storage:/app/storage
     command: ["php", "artisan", "schedule:work"]
     restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
 
 volumes:
   storage:

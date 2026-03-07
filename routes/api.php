@@ -33,6 +33,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
 
+    // Health check (used by Docker/Railway)
+    Route::get('health', fn () => response()->json(['status' => 'ok']));
+
     // Authentication (public)
     Route::prefix('auth')->group(function () {
         Route::post('login', [AuthController::class, 'login'])
