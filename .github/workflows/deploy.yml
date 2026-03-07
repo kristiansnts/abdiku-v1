@@ -1,4 +1,4 @@
-name: Auto Deploy to aaPanel
+name: Deploy to VPS
 
 on:
   push:
@@ -6,13 +6,26 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    timeout-minutes: 15
+
     steps:
-      - name: Deploy to aaPanel
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create .env from secret
         run: |
-          curl --location \
-            -X POST "${AAPANEL_URL}/hook?access_key=${AAPANEL_WEBHOOK_KEY}"
-        env:
-          AAPANEL_URL: ${{ secrets.AAPANEL_URL }}
-          AAPANEL_WEBHOOK_KEY: ${{ secrets.AAPANEL_WEBHOOK_KEY }}
+          echo "${{ secrets.ENV_PRODUCTION }}" > .env
+
+      - name: Build and restart containers
+        run: |
+          docker compose pull --ignore-buildable || true
+          docker compose up -d --build --remove-orphans
+
+      - name: Run migrations (if enabled)
+        run: |
+          docker compose exec -T app php artisan migrate --force
+
+      - name: Clean up old images
+        run: docker image prune -f
 
