@@ -13,11 +13,17 @@ use App\Domain\Attendance\Models\ShiftPolicy;
 use App\Domain\Attendance\Models\WorkPattern;
 use App\Domain\Attendance\Models\EmployeeWorkAssignment;
 use App\Domain\Attendance\Enums\DayOfWeek;
+use App\Exceptions\Api\AttendanceException;
+use App\Exceptions\Api\DeviceException;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Http\Exceptions\ThrottleRequestsException as HttpThrottleRequestsException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Illuminate\Routing\Exceptions\ThrottleRequestsException;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 use Tests\Traits\CreatesRoles;
 
@@ -34,6 +40,14 @@ class MobileAttendanceApiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->handleExceptions([
+            AttendanceException::class,
+            DeviceException::class,
+            AuthenticationException::class,
+            ThrottleRequestsException::class,
+            HttpThrottleRequestsException::class,
+            ValidationException::class,
+        ]);
 
         // Set up roles for notification system
         $this->setUpRoles();
@@ -57,8 +71,10 @@ class MobileAttendanceApiTest extends TestCase
             'user_id' => $this->user->id,
             'device_id' => 'test-device-001',
             'device_name' => 'Test Device',
-            'is_active' => false
+            'is_active' => true
         ]);
+
+        $this->withHeader('X-Device-Id', $this->device->device_id);
     }
 
     // =============================================================================
@@ -68,6 +84,8 @@ class MobileAttendanceApiTest extends TestCase
     /** @test */
     public function it_can_login_with_valid_credentials()
     {
+        $this->device->update(['is_active' => true]);
+
         $response = $this->postJson('/api/v1/auth/login', [
             'email' => $this->user->email,
             'password' => 'password',
@@ -76,7 +94,7 @@ class MobileAttendanceApiTest extends TestCase
             'device_model' => 'iPhone14,3',
             'device_os' => 'iOS 17.2',
             'app_version' => '1.0.0',
-            'force_switch' => false
+            'force_switch' => true
         ]);
 
         $response->assertStatus(200)
@@ -403,7 +421,63 @@ class MobileAttendanceApiTest extends TestCase
     }
 
     /** @test */
-    public function it_can_clock_in_outside_geofence()
+    public function it_can_clock_in_slightly_outside_geofence_with_pending_status()
+    {
+        Sanctum::actingAs($this->user);
+
+        // ~130 m from the office centre — outside the 100 m radius but within the 200 m soft boundary
+        $response = $this->postJson('/api/v1/attendance/clock-in', [
+            'clock_in_at' => now()->toISOString(),
+            'evidence' => [
+                'geolocation' => [
+                    'lat' => -6.2099,  // ~130 m north of office
+                    'lng' => 106.8455,
+                    'accuracy' => 10.5,
+                    'is_mocked' => false,
+                ],
+                'device' => [
+                    'device_id' => 'test-device-001',
+                    'model' => 'iPhone 14 Pro',
+                    'os' => 'iOS 17.2',
+                    'app_version' => '1.0.0',
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(201);
+        $this->assertEquals('PENDING', $response->json('data.status'));
+    }
+
+    /** @test */
+    public function it_can_clock_in_far_outside_geofence_with_pending_status()
+    {
+        Sanctum::actingAs($this->user);
+
+        // ~11.8 km from the office — classified as INVALID_LOCATION
+        $response = $this->postJson('/api/v1/attendance/clock-in', [
+            'clock_in_at' => now()->toISOString(),
+            'evidence' => [
+                'geolocation' => [
+                    'lat' => -6.3000,
+                    'lng' => 106.9000,
+                    'accuracy' => 10.5,
+                    'is_mocked' => false,
+                ],
+                'device' => [
+                    'device_id' => 'test-device-001',
+                    'model' => 'iPhone 14 Pro',
+                    'os' => 'iOS 17.2',
+                    'app_version' => '1.0.0',
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(201);
+        $this->assertEquals('PENDING', $response->json('data.status'));
+    }
+
+    /** @test */
+    public function it_can_clock_in_with_mock_location_and_gets_pending_status()
     {
         Sanctum::actingAs($this->user);
 
@@ -411,27 +485,22 @@ class MobileAttendanceApiTest extends TestCase
             'clock_in_at' => now()->toISOString(),
             'evidence' => [
                 'geolocation' => [
-                    'lat' => -6.3000, // Far from any location
-                    'lng' => 106.9000,
-                    'accuracy' => 10.5, 'is_mocked' => false
+                    'lat' => -6.2088,
+                    'lng' => 106.8456,
+                    'accuracy' => 10.5,
+                    'is_mocked' => true,  // fake GPS
                 ],
                 'device' => [
                     'device_id' => 'test-device-001',
                     'model' => 'iPhone 14 Pro',
                     'os' => 'iOS 17.2',
-                    'app_version' => '1.0.0'
-                ]
-            ]
+                    'app_version' => '1.0.0',
+                ],
+            ],
         ]);
 
-        $response->assertStatus(422);
-
-        $response->assertJson([
-            'success' => false,
-            'error' => [
-                'code' => 'OUT_OF_GEOFENCE'
-            ]
-        ]);
+        $response->assertStatus(201);
+        $this->assertEquals('PENDING', $response->json('data.status'));
     }
 
     /** @test */
@@ -662,10 +731,14 @@ class MobileAttendanceApiTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        AttendanceRaw::factory()->count(5)->create([
-            'employee_id' => $this->employee->id,
-            'status' => 'APPROVED'
-        ]);
+        AttendanceRaw::factory()->count(5)
+            ->sequence(fn ($seq) => [
+                'date' => now()->subDays($seq->index + 1)->toDateString(),
+            ])
+            ->create([
+                'employee_id' => $this->employee->id,
+                'status' => 'APPROVED'
+            ]);
 
         $response = $this->getJson('/api/v1/attendance/history');
 
@@ -698,10 +771,14 @@ class MobileAttendanceApiTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        AttendanceRaw::factory()->count(25)->create([
-            'employee_id' => $this->employee->id,
-            'status' => 'APPROVED'
-        ]);
+        AttendanceRaw::factory()->count(25)
+            ->sequence(fn ($seq) => [
+                'date' => now()->subDays($seq->index + 1)->toDateString(),
+            ])
+            ->create([
+                'employee_id' => $this->employee->id,
+                'status' => 'APPROVED'
+            ]);
 
         $response = $this->getJson('/api/v1/attendance/history?per_page=10&page=1');
 
@@ -1810,10 +1887,14 @@ class MobileAttendanceApiTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        AttendanceRaw::factory()->count(3)->create([
-            'employee_id' => $this->employee->id,
-            'status' => 'APPROVED',
-        ]);
+        AttendanceRaw::factory()->count(3)
+            ->sequence(fn ($seq) => [
+                'date' => now()->subDays($seq->index + 1)->toDateString(),
+            ])
+            ->create([
+                'employee_id' => $this->employee->id,
+                'status' => 'APPROVED',
+            ]);
 
         AttendanceRequest::factory()->count(2)->create([
             'employee_id' => $this->employee->id,
@@ -1870,10 +1951,14 @@ class MobileAttendanceApiTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        AttendanceRaw::factory()->count(10)->create([
-            'employee_id' => $this->employee->id,
-            'status' => 'APPROVED',
-        ]);
+        AttendanceRaw::factory()->count(10)
+            ->sequence(fn ($seq) => [
+                'date' => now()->subDays($seq->index + 1)->toDateString(),
+            ])
+            ->create([
+                'employee_id' => $this->employee->id,
+                'status' => 'APPROVED',
+            ]);
 
         $response = $this->getJson('/api/v1/activities?limit=5');
 

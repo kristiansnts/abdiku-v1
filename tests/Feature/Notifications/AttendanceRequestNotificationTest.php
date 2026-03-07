@@ -10,6 +10,7 @@ use App\Domain\Attendance\Services\RejectAttendanceRequestService;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
+use App\Models\UserDevice;
 use App\Notifications\AttendanceRequestSubmittedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
@@ -25,6 +26,7 @@ class AttendanceRequestNotificationTest extends TestCase
     private User $hrUser;
     private User $employeeUser;
     private Employee $employee;
+    private UserDevice $device;
 
     protected function setUp(): void
     {
@@ -44,6 +46,14 @@ class AttendanceRequestNotificationTest extends TestCase
             'company_id' => $this->company->id,
             'user_id' => $this->employeeUser->id,
         ]);
+
+        $this->device = UserDevice::factory()->create([
+            'user_id' => $this->employeeUser->id,
+            'is_active' => true,
+            'is_blocked' => false,
+        ]);
+
+        $this->withHeader('X-Device-Id', $this->device->device_id);
     }
 
     /** @test */

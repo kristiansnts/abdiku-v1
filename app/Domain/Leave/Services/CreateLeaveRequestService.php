@@ -21,7 +21,20 @@ class CreateLeaveRequestService
             $leaveType = LeaveType::findOrFail($data['leave_type_id']);
             $startDate = Carbon::parse($data['start_date']);
             $endDate = Carbon::parse($data['end_date']);
-            
+
+            $overlap = LeaveRequest::query()
+                ->where('employee_id', $employee->id)
+                ->whereIn('status', [LeaveRequestStatus::PENDING, LeaveRequestStatus::APPROVED])
+                ->whereDate('start_date', '<=', $endDate->toDateString())
+                ->whereDate('end_date', '>=', $startDate->toDateString())
+                ->exists();
+
+            if ($overlap) {
+                throw ValidationException::withMessages([
+                    'start_date' => ['Pengajuan cuti bertabrakan dengan pengajuan lain yang masih pending atau sudah disetujui.'],
+                ]);
+            }
+
             // 1. Hitung hari kerja (business days)
             $leaveRequest = new LeaveRequest([
                 'employee_id' => $employee->id,
@@ -50,6 +63,9 @@ class CreateLeaveRequestService
             }
 
             // 3. Simpan
+            if (isset($data['attachment_path'])) {
+                $leaveRequest->attachment_path = $data['attachment_path'];
+            }
             $leaveRequest->save();
 
             return $leaveRequest;

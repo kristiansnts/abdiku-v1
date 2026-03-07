@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Domain\Leave\Services;
 
 use App\Domain\Leave\Enums\LeaveRequestStatus;
+use App\Domain\Leave\Models\LeaveBalance;
 use App\Domain\Leave\Models\LeaveRecord;
 use App\Domain\Leave\Models\LeaveRequest;
+use App\Domain\Leave\Models\Holiday;
 use App\Models\User;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +28,24 @@ class ApproveLeaveRequestService
         }
 
         DB::transaction(function () use ($request, $approver) {
+            $leaveType = $request->leaveType;
+            $totalDays = $request->total_days ?? $request->calculateBusinessDays();
+
+            if ($leaveType->is_deductible) {
+                $balance = LeaveBalance::where('employee_id', $request->employee_id)
+                    ->where('leave_type_id', $request->leave_type_id)
+                    ->where('year', $request->start_date->year)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $balance || $balance->balance < $totalDays) {
+                    throw new \RuntimeException('Saldo cuti tidak mencukupi untuk disetujui.');
+                }
+
+                $balance->balance = $balance->balance - $totalDays;
+                $balance->save();
+            }
+
             // Update request status
             $request->update([
                 'status' => LeaveRequestStatus::APPROVED,
@@ -35,10 +55,17 @@ class ApproveLeaveRequestService
 
             // Create leave records for each day
             $period = CarbonPeriod::create($request->start_date, $request->end_date);
+            $holidayDates = Holiday::query()
+                ->where('company_id', $request->employee->company_id)
+                ->whereBetween('date', [$request->start_date->toDateString(), $request->end_date->toDateString()])
+                ->pluck('date')
+                ->map(fn ($date) => $date->format('Y-m-d'))
+                ->all();
+            $holidayMap = array_flip($holidayDates);
 
             foreach ($period as $date) {
                 // Skip weekends
-                if ($date->isWeekend()) {
+                if ($date->isWeekend() || isset($holidayMap[$date->format('Y-m-d')])) {
                     continue;
                 }
 

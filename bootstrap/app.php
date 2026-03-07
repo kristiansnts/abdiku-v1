@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'employee.required' => \App\Http\Middleware\Api\EnsureEmployeeExists::class,
+            'device.active' => \App\Http\Middleware\Api\EnsureActiveDevice::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -32,5 +33,13 @@ return Application::configure(basePath: dirname(__DIR__))
                     ],
                 ], 401);
             }
+        });
+
+        $exceptions->render(function (AttendanceException $e, Request $request) {
+            return $e->render($request);
+        });
+
+        $exceptions->render(function (DeviceException $e, Request $request) {
+            return $e->render($request);
         });
     })->create();
