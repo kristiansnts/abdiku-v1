@@ -58,7 +58,7 @@ Route::prefix('v1')->group(function () {
         // Attendance (requires employee)
         Route::middleware(['employee.required'])->group(function () {
 
-            Route::prefix('attendance')->middleware('throttle:60,1')->group(function () {
+            Route::prefix('attendance')->middleware(['throttle:60,1', 'device.active'])->group(function () {
                 Route::post('clock-in', ClockInController::class);
                 Route::post('clock-out', ClockOutController::class);
                 Route::get('status', AttendanceStatusController::class);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Leave\Models;
 
 use App\Domain\Leave\Enums\LeaveRequestStatus;
+use App\Domain\Leave\Models\Holiday;
 use App\Models\Employee;
 use App\Models\User;
 use Carbon\Carbon;
@@ -22,6 +23,7 @@ class LeaveRequest extends Model
         'end_date',
         'total_days',
         'reason',
+        'attachment_path',
         'status',
         'approved_by',
         'approved_at',
@@ -96,9 +98,24 @@ class LeaveRequest extends Model
         $start = Carbon::parse($this->start_date);
         $end = Carbon::parse($this->end_date);
 
-        return $start->diffInDaysFiltered(function (Carbon $date) {
-            // Exclude weekends (Saturday=6, Sunday=0)
-            return !$date->isWeekend();
+        $companyId = $this->employee?->company_id
+            ?? Employee::query()->where('id', $this->employee_id)->value('company_id');
+
+        $holidayDates = [];
+        if ($companyId) {
+            $holidayDates = Holiday::query()
+                ->where('company_id', $companyId)
+                ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                ->pluck('date')
+                ->map(fn (Carbon $date) => $date->format('Y-m-d'))
+                ->all();
+        }
+
+        $holidayMap = array_flip($holidayDates);
+
+        return $start->diffInDaysFiltered(function (Carbon $date) use ($holidayMap) {
+            // Exclude weekends and holidays
+            return !$date->isWeekend() && !isset($holidayMap[$date->format('Y-m-d')]);
         }, $end) + 1; // +1 to include end date
     }
 }

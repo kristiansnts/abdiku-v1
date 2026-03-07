@@ -20,11 +20,15 @@ class ClockOutService
 
     public function execute(Employee $employee, ClockOutData $data): AttendanceRaw
     {
-        $today = now()->toDateString();
+        // Match the attendance record for the day of the clock-out event, not today.
+        // This ensures offline clock-outs are paired with the correct historical record.
+        $attendanceDate = $data->clockOutAt->copy()
+            ->timezone(config('app.timezone'))
+            ->toDateString();
 
         $attendance = AttendanceRaw::query()
             ->where('employee_id', $employee->id)
-            ->where('date', $today)
+            ->whereDate('date', $attendanceDate)
             ->whereNotNull('clock_in')
             ->whereNull('clock_out')
             ->first();

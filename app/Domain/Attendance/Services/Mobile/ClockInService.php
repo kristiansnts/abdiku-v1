@@ -7,6 +7,7 @@ namespace App\Domain\Attendance\Services\Mobile;
 use App\Domain\Attendance\DataTransferObjects\ClockInData;
 use App\Domain\Attendance\Enums\AttendanceSource;
 use App\Domain\Attendance\Enums\AttendanceStatus;
+use App\Domain\Attendance\Enums\GeofenceStatus;
 use App\Domain\Attendance\Models\AttendanceRaw;
 use App\Exceptions\Api\AttendanceException;
 use App\Models\Employee;
@@ -21,48 +22,59 @@ class ClockInService
 
     public function execute(Employee $employee, ClockInData $data): AttendanceRaw
     {
-        $today = now()->toDateString();
+        // Use the date of the clock-in event, not today's server date.
+        // This ensures offline clock-ins are stored on the correct calendar day.
+        $attendanceDate = $data->clockInAt->copy()
+            ->timezone(config('app.timezone'))
+            ->toDateString();
 
         $existingAttendance = AttendanceRaw::query()
             ->where('employee_id', $employee->id)
-            ->where('date', $today)
-            ->whereNotNull('clock_in')
+            ->whereDate('date', $attendanceDate)
             ->first();
 
-        if ($existingAttendance) {
+        if ($existingAttendance && $existingAttendance->clock_in !== null) {
             throw AttendanceException::alreadyClockedIn();
         }
 
-        $company = $employee->company;
+        $company        = $employee->company;
         $geofenceResult = $this->geofenceService->validate(
             $data->latitude,
             $data->longitude,
             $company,
-            $data->isMocked
+            $data->isMocked,
         );
 
-        if (!$geofenceResult->withinGeofence) {
-            $errorCode = $data->isMocked ? 'MOCK_LOCATION_DETECTED' : 'OUT_OF_GEOFENCE';
-            throw new \App\Exceptions\Api\AttendanceException(
-                $geofenceResult->reason ?? 'Lokasi di luar geofence', 
-                $errorCode,
-                422
-            );
-        }
+        // Map geofence status → attendance status.
+        // Clock-in is ALWAYS recorded — never blocked by location.
+        $status = match ($geofenceResult->geofenceStatus) {
+            GeofenceStatus::VALID          => AttendanceStatus::APPROVED,
+            GeofenceStatus::OUTSIDE_RADIUS,
+            GeofenceStatus::INVALID_LOCATION,
+            GeofenceStatus::MOCK_LOCATION  => AttendanceStatus::PENDING,
+        };
 
-        $status = AttendanceStatus::APPROVED;
-
-        return DB::transaction(function () use ($employee, $data, $geofenceResult, $status) {
-            $attendance = AttendanceRaw::create([
-                'company_id' => $employee->company_id,
-                'company_location_id' => $geofenceResult->nearestLocation?->id,
-                'employee_id' => $employee->id,
-                'date' => now()->toDateString(),
-                'clock_in' => $data->clockInAt,
-                'clock_out' => null,
-                'source' => AttendanceSource::MOBILE,
-                'status' => $status,
-            ]);
+        return DB::transaction(function () use ($employee, $data, $geofenceResult, $status, $existingAttendance, $attendanceDate) {
+            if ($existingAttendance) {
+                $existingAttendance->update([
+                    'company_location_id' => $geofenceResult->nearestLocation?->id,
+                    'clock_in'            => $data->clockInAt,
+                    'source'              => AttendanceSource::MOBILE,
+                    'status'              => $status,
+                ]);
+                $attendance = $existingAttendance;
+            } else {
+                $attendance = AttendanceRaw::create([
+                    'company_id'          => $employee->company_id,
+                    'company_location_id' => $geofenceResult->nearestLocation?->id,
+                    'employee_id'         => $employee->id,
+                    'date'                => $attendanceDate,
+                    'clock_in'            => $data->clockInAt,
+                    'clock_out'           => null,
+                    'source'              => AttendanceSource::MOBILE,
+                    'status'              => $status,
+                ]);
+            }
 
             $this->evidenceService->storeGeolocation(
                 $attendance,

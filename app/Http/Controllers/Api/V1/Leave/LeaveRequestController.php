@@ -10,6 +10,7 @@ use App\Domain\Leave\Models\LeaveRequest;
 use App\Domain\Leave\Models\LeaveBalance;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 
 class LeaveRequestController extends Controller
 {
@@ -33,18 +34,28 @@ class LeaveRequestController extends Controller
     {
         $request->validate([
             'leave_type_id' => 'required|exists:leave_types,id',
-            'start_date' => 'required|date|after_or_equal:today',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'reason' => 'nullable|string|max:500',
+            'start_date'    => 'required|date|after_or_equal:today',
+            'end_date'      => 'required|date|after_or_equal:start_date',
+            'reason'        => 'nullable|string|max:500',
+            'attachment'    => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         $employee = $request->user()->employee;
-        
-        $leaveRequest = $this->createService->execute($employee, $request->all());
+
+        $attachmentPath = null;
+        if ($request->hasFile('attachment')) {
+            $attachmentPath = $request->file('attachment')
+                ->store('leave-attachments', 'public');
+        }
+
+        $data = $request->only(['leave_type_id', 'start_date', 'end_date', 'reason']);
+        $data['attachment_path'] = $attachmentPath;
+
+        $leaveRequest = $this->createService->execute($employee, $data);
 
         return response()->json([
             'message' => 'Pengajuan cuti berhasil dikirim.',
-            'data' => $leaveRequest->load('leaveType'),
+            'data'    => $leaveRequest->load('leaveType'),
         ], 201);
     }
 
