@@ -14,9 +14,21 @@ return new class extends Migration {
         $driver = DB::getDriverName();
 
         Schema::table('users', function (Blueprint $table) use ($driver) {
-            if ($driver !== 'sqlite') {
-                // Only drop if we are not on SQLite (SQLite doesn't support dropping constraints well)
-                $table->dropUnique(['email']);
+            if ($driver === 'pgsql') {
+                $constraintExists = collect(DB::select(
+                    "SELECT constraint_name FROM information_schema.table_constraints
+                     WHERE table_name = 'users' AND constraint_name = 'users_email_unique'"
+                ))->isNotEmpty();
+                if ($constraintExists) {
+                    $table->dropUnique(['email']);
+                }
+            } elseif ($driver !== 'sqlite') {
+                // MySQL and others — attempt drop, ignore if missing
+                try {
+                    $table->dropUnique(['email']);
+                } catch (\Exception $e) {
+                    // Constraint didn't exist, safe to continue
+                }
             }
 
             $indexName = 'users_email_company_unique';
