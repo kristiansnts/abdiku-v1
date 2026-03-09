@@ -27,3 +27,5 @@ Thumbs.db
 **/caddy
 frankenphp
 frankenphp-worker.php
+AUDIT_REPORTS
+docs/ROLE_PERMISSION_MATRIX.md

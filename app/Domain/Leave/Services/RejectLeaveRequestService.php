@@ -18,7 +18,7 @@ class RejectLeaveRequestService
         }
 
         // Validate rejector has permission (HR or OWNER)
-        if (!in_array($rejector->role, ['HR', 'OWNER'])) {
+        if (!$rejector->hasRole(['hr', 'owner'])) {
             throw new \RuntimeException('User does not have permission to reject leave requests');
         }
 

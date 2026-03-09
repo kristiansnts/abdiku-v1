@@ -71,8 +71,7 @@ class FinalizePayrollService
 
     private function validateRole(User $actor): void
     {
-        // Check if user has OWNER role or role field contains 'OWNER'
-        if (!$actor->hasRole('owner') && $actor->role !== 'OWNER') {
+        if (!$actor->hasRole('owner')) {
             throw new UnauthorizedPayrollActionException(
                 action: 'finalize payroll',
                 requiredRole: 'owner',

@@ -24,11 +24,11 @@ class Register extends BaseRegister
                 'email' => $data['email'],
                 'password' => $data['password'],
                 'company_id' => $company->id,
-                'role' => 'OWNER', // Gunakan sistem role internal kamu
+                'role' => 'owner',
             ]);
 
-            // 3. Assign Spatie Role jika menggunakan Filament Shield
-            $ownerRole = Role::where('name', 'OWNER')->first();
+            // 3. Assign Spatie Role
+            $ownerRole = Role::where('name', 'owner')->first();
             if ($ownerRole) {
                 $user->assignRole($ownerRole);
             }

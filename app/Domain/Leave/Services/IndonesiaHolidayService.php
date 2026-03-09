@@ -100,7 +100,7 @@ class IndonesiaHolidayService
      */
     private function notifyOwnerOfChange($company, string $holidayName, string $oldDate, string $newDate): void
     {
-        $owners = $company->users()->whereIn('role', ['OWNER', 'HR'])->get();
+        $owners = $company->users()->whereIn('role', ['owner', 'hr'])->get();
         
         $notification = \Filament\Notifications\Notification::make()
             ->title('Update Jadwal Libur Nasional')

@@ -241,8 +241,9 @@ class FinalizePayrollServiceTest extends TestCase
         $this->owner = User::factory()->owner()->create([
             'company_id' => $this->company->id,
         ]);
-        // Assign owner role (assuming you have a role system)
-        // $this->owner->assignRole('owner'); // Uncomment when role system is implemented
+        // Assign Spatie owner role so hasRole('owner') passes in FinalizePayrollService
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'owner', 'guard_name' => 'web']);
+        $this->owner->assignRole('owner');
 
         $this->employee = Employee::factory()->create([
             'company_id' => $this->company->id,

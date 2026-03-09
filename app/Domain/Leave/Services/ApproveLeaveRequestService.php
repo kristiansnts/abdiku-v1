@@ -23,7 +23,7 @@ class ApproveLeaveRequestService
         }
 
         // Validate approver has permission (HR or OWNER)
-        if (!in_array($approver->role, ['HR', 'OWNER'])) {
+        if (!$approver->hasRole(['hr', 'owner'])) {
             throw new \RuntimeException('User does not have permission to approve leave requests');
         }
 
