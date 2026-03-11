@@ -18,20 +18,15 @@ final class PayrollOverrideResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shield-exclamation';
 
-    protected static ?string $navigationGroup = 'Penggajian';
+    protected static ?string $navigationGroup = 'Cuti & Izin';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $modelLabel = 'Penyesuaian';
 
     protected static ?string $pluralModelLabel = 'Penyesuaian';
 
     protected static ?string $slug = 'payroll-overrides';
-
-    public static function shouldRegisterNavigation(): bool
-    {
-        return auth()->user()?->hasRole(['super_admin', 'super-admin']) ?? false;
-    }
 
     public static function getEloquentQuery(): Builder
     {

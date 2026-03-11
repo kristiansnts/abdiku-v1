@@ -74,7 +74,7 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 NavigationGroup::make('Karyawan')->collapsible(),
                 NavigationGroup::make('Kehadiran')->collapsible(),
-                NavigationGroup::make('Cuti')->collapsible(),
+                NavigationGroup::make('Cuti & Izin')->collapsible(),
                 NavigationGroup::make('Penggajian')->collapsible(),
                 NavigationGroup::make('Pengaturan')->collapsible()->collapsed(),
                 NavigationGroup::make('Super Admin')->collapsible()->collapsed(),

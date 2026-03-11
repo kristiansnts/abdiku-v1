@@ -18,20 +18,15 @@ final class OverrideRequestResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationGroup = 'Penggajian';
+    protected static ?string $navigationGroup = 'Cuti & Izin';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $modelLabel = 'Permintaan Perubahan';
 
     protected static ?string $pluralModelLabel = 'Permintaan Perubahan';
 
     protected static ?string $slug = 'override-requests';
-
-    public static function shouldRegisterNavigation(): bool
-    {
-        return auth()->user()?->hasRole(['super_admin', 'super-admin']) ?? false;
-    }
 
     public static function getEloquentQuery(): Builder
     {
