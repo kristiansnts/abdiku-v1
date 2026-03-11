@@ -33,10 +33,15 @@ final class EmployeeForm
 
                 Select::make('company_id')
                     ->label('Perusahaan')
-                    ->relationship('company', 'name')
+                    ->relationship(
+                        'company',
+                        'name',
+                        fn($query) => $query->where('id', auth()->user()?->company_id)
+                    )
                     ->required()
                     ->default(fn() => auth()->user()?->company_id)
                     ->disabled(fn() => !auth()->user()?->hasRole('owner'))
+                    ->live()
                     ->native(false),
 
                 TextInput::make('email')
@@ -62,7 +67,10 @@ final class EmployeeForm
                     ->relationship(
                         'department',
                         'name',
-                        fn($query) => $query->where('company_id', auth()->user()?->company_id)
+                        fn($query, Get $get) => $query->where(
+                            'company_id',
+                            $get('company_id') ?? auth()->user()?->company_id
+                        )
                     )
                     ->nullable()
                     ->searchable()

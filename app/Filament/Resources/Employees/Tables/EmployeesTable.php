@@ -51,7 +51,7 @@ final class EmployeesTable
                     ->formatStateUsing(fn(?string $state): string => match ($state) {
                         'owner' => 'Owner',
                         'hr' => 'HR',
-                        'employee' => 'Employee',
+                        'employee' => 'Karyawan',
                         'super_admin', 'super-admin' => 'Super Admin',
                         default => $state ?? 'Tidak ada role',
                     })
@@ -118,7 +118,7 @@ final class EmployeesTable
                     ->options([
                         'owner' => 'Owner',
                         'hr' => 'HR',
-                        'employee' => 'Employee',
+                        'employee' => 'Karyawan',
                     ])
                     ->native(false)
                     ->preload(),
@@ -135,7 +135,7 @@ final class EmployeesTable
                             ->label('Role Baru')
                             ->options([
                                 'hr' => 'HR',
-                                'employee' => 'Employee',
+                                'employee' => 'Karyawan',
                             ])
                             ->required()
                             ->native(false)
