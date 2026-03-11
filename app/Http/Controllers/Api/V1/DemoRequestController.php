@@ -53,10 +53,12 @@ class DemoRequestController extends Controller
             ]);
 
             Mail::to($validated['email'])->send(new DemoCredentialsMail(
-                ownerName:   $validated['name'],
-                ownerEmail:  $validated['email'],
-                password:    $result['password'],
-                companyName: $validated['company_name'],
+                ownerName:        $validated['name'],
+                ownerEmail:       $validated['email'],
+                password:         $result['password'],
+                companyName:      $validated['company_name'],
+                employeeEmail:    $result['employee_email'],
+                employeePassword: $result['employee_password'],
             ));
 
             return response()->json([

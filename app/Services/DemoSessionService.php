@@ -40,14 +40,16 @@ final class DemoSessionService
     {
         $sandboxId = Str::uuid()->toString();
         $password = Str::random(10);
+        $employeePassword = 'demo1234'; // shared password for all demo employees
         $owner = null;
         $company = null;
+        $sampleEmployee = null; // one employee for mobile demo
 
         $ownerName    = $params['name']         ?? 'Owner Demo';
         $ownerEmail   = $params['email']        ?? "demo-owner-{$sandboxId}@payrollkami.app";
         $companyName  = $params['company_name'] ?? 'PT Demo PayrollKami';
 
-        DB::transaction(function () use ($sandboxId, $password, $ownerName, $ownerEmail, $companyName, &$owner, &$company) {
+        DB::transaction(function () use ($sandboxId, $password, $employeePassword, $ownerName, $ownerEmail, $companyName, &$owner, &$company, &$sampleEmployee) {
             $company = Company::create([
                 'name' => $companyName,
                 'is_demo' => true,
@@ -125,7 +127,7 @@ final class DemoSessionService
                     'company_id' => $company->id,
                     'name' => $name,
                     'email' => "demo-emp{$i}-{$sandboxId}@payrollkami.app",
-                    'password' => Hash::make('demo1234'),
+                    'password' => Hash::make($employeePassword),
                 ]);
                 $user->assignRole('employee');
 
@@ -138,6 +140,11 @@ final class DemoSessionService
                     'status' => 'ACTIVE',
                     'ptkp_status' => $ptkpOptions[$i % count($ptkpOptions)],
                 ]);
+
+                // Capture first employee for mobile demo credentials
+                if ($i === 0) {
+                    $sampleEmployee = ['name' => $name, 'email' => $user->email];
+                }
 
                 EmployeeCompensation::create([
                     'employee_id' => $emp->id,
@@ -262,9 +269,12 @@ final class DemoSessionService
         });
 
         return [
-            'company' => $company,
-            'owner' => $owner,
-            'password' => $password,
+            'company'           => $company,
+            'owner'             => $owner,
+            'password'          => $password,
+            'employee_email'    => $sampleEmployee['email'] ?? null,
+            'employee_password' => $employeePassword,
+            'employee_name'     => $sampleEmployee['name'] ?? null,
         ];
     }
 

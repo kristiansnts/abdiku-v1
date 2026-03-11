@@ -89,10 +89,11 @@
 
             <div class="company-badge">🏢 {{ $companyName }}</div>
 
+            <!-- Web / Admin Panel -->
             <div class="creds-box">
-                <div class="creds-title">Kredensial Login</div>
+                <div class="creds-title">💻 Login Panel Admin (Web)</div>
                 <div class="cred-row">
-                    <span class="cred-label">URL Login</span>
+                    <span class="cred-label">URL</span>
                     <span class="cred-value">console.payrollkami.app</span>
                 </div>
                 <div class="cred-row">
@@ -107,9 +108,31 @@
 
             <div class="btn-wrapper">
                 <a href="https://console.payrollkami.app/admin" class="btn">
-                    🚀 Masuk ke Dashboard
+                    🚀 Buka Panel Admin
                 </a>
             </div>
+
+            @if($employeeEmail)
+            <!-- Mobile App -->
+            <div class="creds-box" style="border-color: #4ade80; margin-top: 20px;">
+                <div class="creds-title" style="color: #166534;">📱 Login Aplikasi Mobile (Karyawan)</div>
+                <div class="cred-row">
+                    <span class="cred-label">Aplikasi</span>
+                    <span class="cred-value">PayrollKami (App Store / Play Store)</span>
+                </div>
+                <div class="cred-row">
+                    <span class="cred-label">Email</span>
+                    <span class="cred-value">{{ $employeeEmail }}</span>
+                </div>
+                <div class="cred-row">
+                    <span class="cred-label">Password</span>
+                    <span class="cred-value">{{ $employeePassword }}</span>
+                </div>
+            </div>
+            <p style="font-size: 12px; color: #6b7280; text-align: center; margin-bottom: 24px;">
+                Gunakan akun karyawan ini untuk mencoba fitur absensi, payslip, dan cuti di aplikasi mobile.
+            </p>
+            @endif
 
             <div class="expiry-box">
                 ⏰ <strong>Perhatian:</strong> Sesi demo berlaku selama <strong>24 jam</strong>.

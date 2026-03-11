@@ -19,6 +19,8 @@ class DemoCredentialsMail extends Mailable
         public readonly string $ownerEmail,
         public readonly string $password,
         public readonly string $companyName,
+        public readonly ?string $employeeEmail = null,
+        public readonly string $employeePassword = 'demo1234',
     ) {}
 
     public function envelope(): Envelope
