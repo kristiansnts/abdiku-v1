@@ -57,6 +57,11 @@ class DailyAttendanceWidget extends BaseWidget
                     ->timezone('Asia/Jakarta')
                     ->placeholder('-')
                     ->sortable(),
+                TextColumn::make('companyLocation.name')
+                    ->label('Lokasi')
+                    ->placeholder('—')
+                    ->badge()
+                    ->color('info'),
                 TextColumn::make('source')
                     ->label('Sumber')
                     ->badge(),
