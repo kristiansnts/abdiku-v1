@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\ActivityController;
+use App\Http\Controllers\Api\V1\DemoRequestController;
 use App\Http\Controllers\Api\V1\Attendance\AttendanceDetailController;
 use App\Http\Controllers\Api\V1\Attendance\AttendanceHistoryController;
 use App\Http\Controllers\Api\V1\Attendance\AttendanceRequestController;
@@ -35,6 +36,11 @@ Route::prefix('v1')->group(function () {
 
     // Health check (used by Docker/Railway)
     Route::get('health', fn () => response()->json(['status' => 'ok']));
+
+    // Demo request (public — from landing page)
+    Route::post('demo/request', DemoRequestController::class)
+        ->middleware('throttle:3,60')
+        ->name('api.demo.request');
 
     // Authentication (public)
     Route::prefix('auth')->group(function () {

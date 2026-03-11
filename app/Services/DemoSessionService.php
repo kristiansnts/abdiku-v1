@@ -33,17 +33,23 @@ final class DemoSessionService
     /**
      * Create a fresh isolated demo sandbox.
      * Returns the owner User, Company, and plain-text password.
+     *
+     * @param  array{name?: string, email?: string, company_name?: string}  $params
      */
-    public function createSandbox(): array
+    public function createSandbox(array $params = []): array
     {
         $sandboxId = Str::uuid()->toString();
         $password = Str::random(10);
         $owner = null;
         $company = null;
 
-        DB::transaction(function () use ($sandboxId, $password, &$owner, &$company) {
+        $ownerName    = $params['name']         ?? 'Owner Demo';
+        $ownerEmail   = $params['email']        ?? "demo-owner-{$sandboxId}@payrollkami.app";
+        $companyName  = $params['company_name'] ?? 'PT Demo PayrollKami';
+
+        DB::transaction(function () use ($sandboxId, $password, $ownerName, $ownerEmail, $companyName, &$owner, &$company) {
             $company = Company::create([
-                'name' => 'PT Demo PayrollKami',
+                'name' => $companyName,
                 'is_demo' => true,
                 'is_onboarded' => true,
             ]);
@@ -84,8 +90,8 @@ final class DemoSessionService
 
             $owner = User::create([
                 'company_id' => $company->id,
-                'name' => 'Owner Demo',
-                'email' => "demo-owner-{$sandboxId}@payrollkami.app",
+                'name' => $ownerName,
+                'email' => $ownerEmail,
                 'password' => Hash::make($password),
             ]);
             $owner->assignRole('owner');
