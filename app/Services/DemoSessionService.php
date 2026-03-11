@@ -185,6 +185,8 @@ final class DemoSessionService
                 'company_id' => $company->id,
                 'period_start' => $lastMonth->copy()->startOfMonth(),
                 'period_end' => $lastMonth->copy()->endOfMonth(),
+                'year' => $lastMonth->year,
+                'month' => $lastMonth->month,
                 'state' => PayrollState::DRAFT,
                 'rule_version' => 'v1.0',
             ]);
@@ -198,6 +200,8 @@ final class DemoSessionService
                 'company_id' => $company->id,
                 'period_start' => $now->copy()->startOfMonth(),
                 'period_end' => $now->copy()->endOfMonth(),
+                'year' => $now->year,
+                'month' => $now->month,
                 'state' => PayrollState::DRAFT,
                 'rule_version' => 'v1.0',
             ]);
