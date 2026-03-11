@@ -24,11 +24,15 @@ class Company extends Model
         'npwp',
         'is_onboarded',
         'auto_sync_holidays',
+        'is_demo',
+        'demo_expires_at',
     ];
 
     protected $casts = [
         'is_onboarded' => 'boolean',
         'auto_sync_holidays' => 'boolean',
+        'is_demo' => 'boolean',
+        'demo_expires_at' => 'datetime',
     ];
 
     public function users(): HasMany

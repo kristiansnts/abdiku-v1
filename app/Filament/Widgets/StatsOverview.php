@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Filament\Widgets;
 
 use App\Domain\Attendance\Models\AttendanceRaw;
+use App\Domain\Attendance\Models\AttendanceRequest;
 use App\Domain\Payroll\Enums\PayrollState;
+use App\Domain\Payroll\Models\OverrideRequest;
 use App\Domain\Payroll\Models\PayrollPeriod;
 use App\Models\Employee;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
@@ -90,6 +92,29 @@ class StatsOverview extends BaseWidget
             ->values()
             ->toArray();
 
+        // 4. Employees not yet clocked in today (late/absent)
+        $totalActive = Employee::query()
+            ->where('company_id', $companyId)
+            ->where('status', 'ACTIVE')
+            ->count();
+        $clockedInToday = AttendanceRaw::query()
+            ->where('company_id', $companyId)
+            ->whereDate('date', now('Asia/Jakarta'))
+            ->distinct('employee_id')
+            ->count('employee_id');
+        $notYetClockIn = max(0, $totalActive - $clockedInToday);
+
+        // 5. Pending approvals (leave requests + override requests)
+        $pendingLeaveCount = AttendanceRequest::query()
+            ->whereHas('employee', fn($q) => $q->where('company_id', $companyId))
+            ->where('status', \App\Domain\Attendance\Enums\AttendanceStatus::PENDING)
+            ->count();
+        $pendingOverrideCount = OverrideRequest::query()
+            ->whereHas('attendanceDecision.payrollPeriod', fn($q) => $q->where('company_id', $companyId))
+            ->where('status', 'PENDING')
+            ->count();
+        $totalPendingApprovals = $pendingLeaveCount + $pendingOverrideCount;
+
         return [
             Stat::make('Kehadiran Hari Ini', $todayAttendanceCount)
                 ->description('Total karyawan yang sudah absen hari ini')
@@ -106,6 +131,14 @@ class StatsOverview extends BaseWidget
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->chart($cashoutTrend ?: [0])
                 ->color('primary'),
+            Stat::make('Belum Absen Hari Ini', $notYetClockIn)
+                ->description("Dari {$totalActive} karyawan aktif")
+                ->descriptionIcon('heroicon-m-exclamation-triangle')
+                ->color($notYetClockIn > 0 ? 'warning' : 'success'),
+            Stat::make('Menunggu Persetujuan', $totalPendingApprovals)
+                ->description("{$pendingLeaveCount} izin · {$pendingOverrideCount} koreksi absensi")
+                ->descriptionIcon('heroicon-m-bell-alert')
+                ->color($totalPendingApprovals > 0 ? 'danger' : 'success'),
         ];
     }
 }

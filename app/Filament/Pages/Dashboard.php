@@ -2,8 +2,8 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Widgets\CompanyLocationMapWidget;
 use App\Filament\Widgets\DailyAttendanceWidget;
+use App\Filament\Widgets\PayrollStatusWidget;
 use App\Filament\Widgets\StatsOverview;
 use Filament\Pages\Dashboard as BaseDashboard;
 
@@ -17,7 +17,7 @@ class Dashboard extends BaseDashboard
     {
         return [
             StatsOverview::class,
-            CompanyLocationMapWidget::class,
+            PayrollStatusWidget::class,
             DailyAttendanceWidget::class,
         ];
     }
