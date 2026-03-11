@@ -29,9 +29,9 @@ class HolidayResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
-    protected static ?string $navigationGroup = 'Pengaturan Kehadiran';
+    protected static ?string $navigationGroup = 'Pengaturan';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 7;
 
     protected static ?string $modelLabel = 'Hari Libur';
 

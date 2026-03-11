@@ -27,9 +27,14 @@ final class UserDeviceResource extends Resource
 
     protected static ?string $navigationGroup = 'Pengaturan';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 11;
 
     protected static ?string $recordTitleAttribute = 'device_name';
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->hasRole(['super_admin', 'super-admin']) ?? false;
+    }
 
     public static function getGloballySearchableAttributes(): array
     {

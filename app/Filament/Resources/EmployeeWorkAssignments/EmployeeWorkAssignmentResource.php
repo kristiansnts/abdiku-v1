@@ -32,9 +32,9 @@ class EmployeeWorkAssignmentResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $navigationGroup = 'Pengaturan Kehadiran';
+    protected static ?string $navigationGroup = 'Pengaturan';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 6;
 
     protected static ?string $modelLabel = 'Penugasan Karyawan';
 

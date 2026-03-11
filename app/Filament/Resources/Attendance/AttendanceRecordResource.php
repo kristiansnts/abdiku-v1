@@ -18,9 +18,9 @@ final class AttendanceRecordResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clock';
 
-    protected static ?string $navigationGroup = 'Penggajian';
+    protected static ?string $navigationGroup = 'Kehadiran';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $modelLabel = 'Jadwal Kehadiran';
 

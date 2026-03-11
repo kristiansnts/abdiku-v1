@@ -22,7 +22,7 @@ final class EmployeeResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-identification';
 
-    protected static ?string $navigationGroup = 'Penggajian';
+    protected static ?string $navigationGroup = 'Karyawan';
 
     protected static ?int $navigationSort = 1;
 

@@ -18,9 +18,9 @@ final class AttendanceDecisionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static ?string $navigationGroup = 'Penggajian';
+    protected static ?string $navigationGroup = 'Kehadiran';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $modelLabel = 'Keputusan Kehadiran';
 

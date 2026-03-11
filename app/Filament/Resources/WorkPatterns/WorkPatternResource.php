@@ -28,9 +28,9 @@ class WorkPatternResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
-    protected static ?string $navigationGroup = 'Pengaturan Kehadiran';
+    protected static ?string $navigationGroup = 'Pengaturan';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 5;
 
     protected static ?string $modelLabel = 'Pola Kerja';
 

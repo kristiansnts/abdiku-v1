@@ -28,6 +28,11 @@ final class PayrollOverrideResource extends Resource
 
     protected static ?string $slug = 'payroll-overrides';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->hasRole(['super_admin', 'super-admin']) ?? false;
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()

@@ -27,7 +27,7 @@ final class CompanyResource extends Resource
 
     protected static ?string $navigationGroup = 'Pengaturan';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 12;
 
     protected static ?string $recordTitleAttribute = 'name';
 

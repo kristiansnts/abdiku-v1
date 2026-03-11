@@ -23,9 +23,9 @@ class LeaveBalanceResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-scale';
 
-    protected static ?string $navigationGroup = 'Manajemen Karyawan';
+    protected static ?string $navigationGroup = 'Karyawan';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $modelLabel = 'Saldo Cuti';
 

@@ -27,6 +27,8 @@ final class UserResource extends Resource
 
     protected static ?string $navigationGroup = 'Pengaturan';
 
+    protected static ?int $navigationSort = 10;
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function getEloquentQuery(): Builder

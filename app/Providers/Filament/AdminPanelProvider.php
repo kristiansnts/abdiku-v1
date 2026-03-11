@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\ResetPassword;
+use Filament\Navigation\NavigationGroup;
 use Livewire\Livewire;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -70,6 +71,14 @@ class AdminPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->databaseNotificationsPolling('5s')
             ->sidebarCollapsibleOnDesktop(true)
+            ->navigationGroups([
+                NavigationGroup::make('Karyawan')->collapsible(),
+                NavigationGroup::make('Kehadiran')->collapsible(),
+                NavigationGroup::make('Cuti')->collapsible(),
+                NavigationGroup::make('Penggajian')->collapsible(),
+                NavigationGroup::make('Pengaturan')->collapsible()->collapsed(),
+                NavigationGroup::make('Super Admin')->collapsible()->collapsed(),
+            ])
             ->renderHook(
                 'panels::head.end',
                 fn(): string => Blade::render('

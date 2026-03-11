@@ -27,9 +27,9 @@ class ShiftPolicyResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clock';
 
-    protected static ?string $navigationGroup = 'Pengaturan Kehadiran';
+    protected static ?string $navigationGroup = 'Pengaturan';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $modelLabel = 'Kebijakan Shift';
 

@@ -28,6 +28,11 @@ final class OverrideRequestResource extends Resource
 
     protected static ?string $slug = 'override-requests';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->hasRole(['super_admin', 'super-admin']) ?? false;
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()

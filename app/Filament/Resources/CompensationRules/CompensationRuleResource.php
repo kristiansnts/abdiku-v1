@@ -24,7 +24,7 @@ final class CompensationRuleResource extends Resource
 
     protected static ?string $navigationGroup = 'Pengaturan';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 9;
 
     protected static ?string $modelLabel = 'Aturan Kompensasi';
 
