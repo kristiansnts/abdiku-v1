@@ -44,20 +44,18 @@ final class ViewAttendanceRecord extends ViewRecord
                             ->badge(),
                     ]),
                 Section::make('Lokasi Kehadiran')
-                    ->visible(fn ($record) => $record->company_location_id !== null)
+                    ->visible(fn ($record) => $record->company_location_id !== null || $record->evidences()->where('type', 'GEOLOCATION')->exists())
                     ->schema([
                         TextEntry::make('companyLocation.name')
-                            ->label('Nama Lokasi'),
+                            ->label('Nama Lokasi')
+                            ->placeholder('Di luar area terdaftar'),
                         TextEntry::make('companyLocation.address')
                             ->label('Alamat')
+                            ->placeholder('-')
                             ->columnSpanFull(),
                         ViewEntry::make('map')
                             ->label('')
-                            ->view('filament.infolists.entries.location-map', [
-                                'latitude' => fn ($record) => $record->companyLocation?->latitude,
-                                'longitude' => fn ($record) => $record->companyLocation?->longitude,
-                                'radius' => fn ($record) => $record->companyLocation?->geofence_radius_meters,
-                            ])
+                            ->view('filament.infolists.entries.location-map')
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
