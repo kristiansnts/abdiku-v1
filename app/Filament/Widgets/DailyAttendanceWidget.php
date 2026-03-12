@@ -88,17 +88,17 @@ class DailyAttendanceWidget extends BaseWidget
                             ->address($record->companyLocation?->address)
                             ->employeeLatitude(function() use ($record) {
                                 $ev = $record->evidences()->where('type', 'GEOLOCATION')->where('action', 'CLOCK_IN')->first();
-                                $payload = $ev ? json_decode($ev->payload, true) : null;
+                                $payload = $ev ? (is_array($ev->payload) ? $ev->payload : json_decode($ev->payload, true)) : null;
                                 return $payload['lat'] ?? null;
                             })
                             ->employeeLongitude(function() use ($record) {
                                 $ev = $record->evidences()->where('type', 'GEOLOCATION')->where('action', 'CLOCK_IN')->first();
-                                $payload = $ev ? json_decode($ev->payload, true) : null;
+                                $payload = $ev ? (is_array($ev->payload) ? $ev->payload : json_decode($ev->payload, true)) : null;
                                 return $payload['lng'] ?? null;
                             })
                             ->withinGeofence(function() use ($record) {
                                 $ev = $record->evidences()->where('type', 'GEOLOCATION')->where('action', 'CLOCK_IN')->first();
-                                $payload = $ev ? json_decode($ev->payload, true) : null;
+                                $payload = $ev ? (is_array($ev->payload) ? $ev->payload : json_decode($ev->payload, true)) : null;
                                 return $payload['within_geofence'] ?? true;
                             })
                             ->disabled()
