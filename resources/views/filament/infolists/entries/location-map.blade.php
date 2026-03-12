@@ -1,7 +1,4 @@
 @php
-    use App\Domain\Attendance\Enums\EvidenceType;
-    use App\Domain\Attendance\Enums\EvidenceAction;
-
     $record = $getRecord();
 
     // Company geofence (center of the circle)
@@ -10,9 +7,10 @@
     $radius = $record->companyLocation?->geofence_radius_meters ?? 100;
 
     // Employee's actual clock-in GPS from evidence
+    // Use string values directly — `use` statements don't work inside @php blocks
     $clockInEvidence = $record->evidences()
-        ->where('type', EvidenceType::GEOLOCATION->value)
-        ->where('action', EvidenceAction::CLOCK_IN->value)
+        ->where('type', 'GEOLOCATION')
+        ->where('action', 'CLOCK_IN')
         ->first();
 
     $employeeLat = null;
