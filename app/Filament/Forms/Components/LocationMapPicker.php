@@ -21,6 +21,12 @@ class LocationMapPicker extends Field
 
     protected int|Closure|null $zoom = 17;
 
+    protected float|Closure|null $employeeLatitude = null;
+
+    protected float|Closure|null $employeeLongitude = null;
+
+    protected bool|Closure $withinGeofence = true;
+
     public function latitude(float|Closure|null $latitude): static
     {
         $this->latitude = $latitude;
@@ -79,6 +85,39 @@ class LocationMapPicker extends Field
     public function getZoom(): int
     {
         return $this->evaluate($this->zoom) ?? 17;
+    }
+
+    public function employeeLatitude(float|Closure|null $lat): static
+    {
+        $this->employeeLatitude = $lat;
+        return $this;
+    }
+
+    public function employeeLongitude(float|Closure|null $lng): static
+    {
+        $this->employeeLongitude = $lng;
+        return $this;
+    }
+
+    public function withinGeofence(bool|Closure $within): static
+    {
+        $this->withinGeofence = $within;
+        return $this;
+    }
+
+    public function getEmployeeLatitude(): ?float
+    {
+        return $this->evaluate($this->employeeLatitude);
+    }
+
+    public function getEmployeeLongitude(): ?float
+    {
+        return $this->evaluate($this->employeeLongitude);
+    }
+
+    public function getWithinGeofence(): bool
+    {
+        return (bool) $this->evaluate($this->withinGeofence);
     }
 
     public function getParentStatePath(): string

@@ -78,7 +78,7 @@ class DailyAttendanceWidget extends BaseWidget
                     ->modalHeading('Lokasi Kehadiran')
                     ->modalSubmitAction(false)
                     ->modalCancelAction(false)
-                    ->visible(fn($record) => $record->company_location_id !== null)
+                    ->visible(fn($record) => $record->company_location_id !== null || $record->evidences()->where('type', 'GEOLOCATION')->exists())
                     ->form(fn($record) => [
                         \App\Filament\Forms\Components\LocationMapPicker::make('location')
                             ->label('')
@@ -86,6 +86,21 @@ class DailyAttendanceWidget extends BaseWidget
                             ->longitude($record->companyLocation?->longitude)
                             ->radius($record->companyLocation?->geofence_radius_meters)
                             ->address($record->companyLocation?->address)
+                            ->employeeLatitude(function() use ($record) {
+                                $ev = $record->evidences()->where('type', 'GEOLOCATION')->where('action', 'CLOCK_IN')->first();
+                                $payload = $ev ? json_decode($ev->payload, true) : null;
+                                return $payload['lat'] ?? null;
+                            })
+                            ->employeeLongitude(function() use ($record) {
+                                $ev = $record->evidences()->where('type', 'GEOLOCATION')->where('action', 'CLOCK_IN')->first();
+                                $payload = $ev ? json_decode($ev->payload, true) : null;
+                                return $payload['lng'] ?? null;
+                            })
+                            ->withinGeofence(function() use ($record) {
+                                $ev = $record->evidences()->where('type', 'GEOLOCATION')->where('action', 'CLOCK_IN')->first();
+                                $payload = $ev ? json_decode($ev->payload, true) : null;
+                                return $payload['within_geofence'] ?? true;
+                            })
                             ->disabled()
                     ]),
             ])
