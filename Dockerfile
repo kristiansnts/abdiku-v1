@@ -45,22 +45,41 @@ RUN mkdir -p storage/framework/views
 RUN npm run build
 
 # Stage 3: Production image with FrankenPHP (Octane)
-FROM ghcr.io/dunglas/frankenphp:1-php8.4-alpine
+# Use php:8.4-alpine (same as Stage 1 — cached) and download FrankenPHP binary from GitHub
+FROM php:8.4-alpine
 
-# Install PHP extensions
-RUN install-php-extensions \
-    pdo_mysql \
-    pdo_pgsql \
-    pdo_sqlite \
-    gd \
-    zip \
-    intl \
-    opcache \
-    pcntl \
-    bcmath \
-    mbstring \
-    exif \
-    redis
+# Install PHP extensions via standard Alpine tooling
+RUN apk add --no-cache \
+    libzip-dev \
+    icu-dev \
+    libpng-dev \
+    freetype-dev \
+    libjpeg-turbo-dev \
+    libpq-dev \
+    oniguruma-dev \
+    curl \
+    && docker-php-ext-configure gd \
+        --with-freetype \
+        --with-jpeg \
+    && docker-php-ext-install \
+        pdo_mysql \
+        pdo_pgsql \
+        pdo_sqlite \
+        gd \
+        zip \
+        intl \
+        opcache \
+        pcntl \
+        bcmath \
+        mbstring \
+        exif
+
+# Install redis extension via PECL
+RUN apk add --no-cache $PHPIZE_DEPS \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del $PHPIZE_DEPS \
+    && rm -rf /tmp/pear
 
 # Configure PHP for production
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
@@ -77,6 +96,12 @@ RUN echo "memory_limit=256M" >> "$PHP_INI_DIR/conf.d/99-app.ini" && \
     echo "opcache.validate_timestamps=0" >> "$PHP_INI_DIR/conf.d/99-app.ini" && \
     echo "opcache.save_comments=1" >> "$PHP_INI_DIR/conf.d/99-app.ini" && \
     echo "opcache.enable_file_override=1" >> "$PHP_INI_DIR/conf.d/99-app.ini"
+
+# Download FrankenPHP binary from GitHub releases (avoids Docker Hub / ghcr.io)
+RUN ARCH=$(uname -m) && \
+    curl -fsSL "https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-linux-${ARCH}" \
+        -o /usr/local/bin/frankenphp && \
+    chmod +x /usr/local/bin/frankenphp
 
 WORKDIR /app
 
