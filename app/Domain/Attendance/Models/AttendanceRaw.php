@@ -9,6 +9,7 @@ use App\Domain\Attendance\Enums\AttendanceStatus;
 use App\Models\Company;
 use App\Models\CompanyLocation;
 use App\Models\Employee;
+use App\Models\User;
 use Database\Factories\AttendanceRawFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -38,12 +39,16 @@ class AttendanceRaw extends Model
         'clock_out',
         'source',
         'status',
+        'reviewed_by',
+        'reviewed_at',
+        'review_note',
     ];
 
     protected $casts = [
         'date' => 'date',
         'clock_in' => 'datetime',
         'clock_out' => 'datetime',
+        'reviewed_at' => 'datetime',
         'source' => AttendanceSource::class,
         'status' => AttendanceStatus::class,
     ];
@@ -92,6 +97,11 @@ class AttendanceRaw extends Model
     public function getEffectiveClockOut(): ?\Carbon\Carbon
     {
         return $this->timeCorrection?->corrected_clock_out ?? $this->clock_out;
+    }
+
+    public function reviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
     }
 
     public function isPending(): bool

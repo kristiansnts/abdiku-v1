@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace App\Filament\Widgets;
 
 use App\Domain\Attendance\Models\AttendanceRaw;
+use App\Domain\Attendance\Services\ApproveAttendanceRecordService;
+use App\Domain\Attendance\Services\RejectAttendanceRecordService;
+use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -71,6 +76,48 @@ class DailyAttendanceWidget extends BaseWidget
             ])
             ->defaultSort('clock_in', 'desc')
             ->actions([
+                Action::make('approve')
+                    ->label('Setujui')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Setujui Kehadiran')
+                    ->modalDescription('Apakah Anda yakin ingin menyetujui rekap kehadiran ini?')
+                    ->form([
+                        Textarea::make('review_note')
+                            ->label('Catatan (opsional)')
+                            ->rows(2),
+                    ])
+                    ->visible(fn($record) => $record->isPending() && $record->canBeModified())
+                    ->action(function($record, array $data) {
+                        try {
+                            app(ApproveAttendanceRecordService::class)
+                                ->execute($record, $data['review_note'] ?? null, auth()->user());
+                            Notification::make()->title('Kehadiran disetujui')->success()->send();
+                        } catch (\Throwable $e) {
+                            Notification::make()->title($e->getMessage())->danger()->send();
+                        }
+                    }),
+                Action::make('reject')
+                    ->label('Tolak')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->form([
+                        Textarea::make('review_note')
+                            ->label('Alasan penolakan')
+                            ->required()
+                            ->rows(2),
+                    ])
+                    ->visible(fn($record) => $record->isPending() && $record->canBeModified())
+                    ->action(function($record, array $data) {
+                        try {
+                            app(RejectAttendanceRecordService::class)
+                                ->execute($record, $data['review_note'], auth()->user());
+                            Notification::make()->title('Kehadiran ditolak')->warning()->send();
+                        } catch (\Throwable $e) {
+                            Notification::make()->title($e->getMessage())->danger()->send();
+                        }
+                    }),
                 \Filament\Tables\Actions\Action::make('viewLocation')
                     ->label('Lihat Lokasi')
                     ->icon('heroicon-o-map-pin')
