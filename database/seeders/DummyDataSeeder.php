@@ -15,6 +15,7 @@ use App\Domain\Payroll\Models\PayrollAddition;
 use App\Domain\Payroll\Models\PayrollDeductionRule;
 use App\Domain\Payroll\Models\PayrollPeriod;
 use App\Models\Company;
+use App\Models\CompanyLocation;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -35,6 +36,28 @@ class DummyDataSeeder extends Seeder
         // Create company
         $company = Company::create([
             'name' => 'PT Demo Indonesia',
+        ]);
+
+        $this->command->info('Creating company locations...');
+
+        $locationHQ = CompanyLocation::create([
+            'company_id'              => $company->id,
+            'name'                    => 'Kantor Pusat Jakarta',
+            'address'                 => 'Jl. Sudirman No. 1, Jakarta Pusat',
+            'latitude'                => -6.208763,
+            'longitude'               => 106.845599,
+            'geofence_radius_meters'  => 200,
+            'is_default'              => true,
+        ]);
+
+        $locationBranch = CompanyLocation::create([
+            'company_id'              => $company->id,
+            'name'                    => 'Kantor Cabang Surabaya',
+            'address'                 => 'Jl. Pemuda No. 27, Surabaya',
+            'latitude'                => -7.257472,
+            'longitude'               => 112.752090,
+            'geofence_radius_meters'  => 200,
+            'is_default'              => false,
         ]);
 
         $this->command->info('Creating users and employees...');
@@ -102,6 +125,16 @@ class DummyDataSeeder extends Seeder
             ]);
 
             $employees[] = $employee;
+        }
+
+        $this->command->info('Assigning employees to company locations...');
+
+        // Employees 1-7 → Head Office (Jakarta), employees 8-10 → Branch (Surabaya)
+        foreach (array_slice($employees, 0, 7) as $employee) {
+            $employee->locations()->sync([$locationHQ->id]);
+        }
+        foreach (array_slice($employees, 7) as $employee) {
+            $employee->locations()->sync([$locationBranch->id]);
         }
 
         $this->command->info('Creating BPJS deduction rules...');
