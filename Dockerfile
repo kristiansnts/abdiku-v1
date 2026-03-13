@@ -45,7 +45,7 @@ RUN mkdir -p storage/framework/views
 RUN npm run build
 
 # Stage 3: Production image with FrankenPHP (Octane)
-FROM dunglas/frankenphp:1-php8.4-alpine
+FROM ghcr.io/dunglas/frankenphp:1-php8.4-alpine
 
 # Install PHP extensions
 RUN install-php-extensions \
