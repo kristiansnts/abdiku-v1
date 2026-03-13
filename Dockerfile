@@ -57,6 +57,7 @@ RUN apk add --no-cache \
     libjpeg-turbo-dev \
     libpq-dev \
     oniguruma-dev \
+    sqlite-dev \
     curl \
     && docker-php-ext-configure gd \
         --with-freetype \
