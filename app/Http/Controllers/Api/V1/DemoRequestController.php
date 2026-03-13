@@ -24,15 +24,15 @@ class DemoRequestController extends Controller
             'company_name' => ['required', 'string', 'max:150'],
         ]);
 
-        // One sandbox per email per 24 hours
+        // One sandbox per email per week
         $recentLead = DemoLead::where('email', $validated['email'])
-            ->where('created_at', '>=', now()->subDay())
+            ->where('created_at', '>=', now()->subWeek())
             ->exists();
 
         if ($recentLead) {
             return response()->json([
                 'success' => false,
-                'message' => 'Demo untuk email ini sudah dibuat. Silakan cek inbox Anda atau coba lagi besok.',
+                'message' => 'Demo untuk email ini sudah dibuat. Silakan cek inbox Anda atau coba lagi minggu depan.',
             ], 429);
         }
 

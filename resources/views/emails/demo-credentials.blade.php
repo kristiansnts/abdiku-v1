@@ -135,8 +135,8 @@
             @endif
 
             <div class="expiry-box">
-                ⏰ <strong>Perhatian:</strong> Sesi demo berlaku selama <strong>24 jam</strong>.
-                Data demo akan dihapus otomatis setelah masa berlaku habis.
+                📅 <strong>Info:</strong> Akun demo berlaku selama <strong>7 hari</strong>.
+                Data demo akan dihapus otomatis setelah 1 minggu.
             </div>
 
             <p style="font-size: 14px; color: #4b5563; line-height: 1.7;">
