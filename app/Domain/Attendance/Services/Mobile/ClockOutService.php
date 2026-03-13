@@ -55,7 +55,9 @@ class ClockOutService
                 $geofenceResult = $this->geofenceService->validate(
                     $data->latitude,
                     $data->longitude,
-                    $company
+                    $company,
+                    false,
+                    $employee,
                 );
 
                 $this->evidenceService->storeGeolocation(

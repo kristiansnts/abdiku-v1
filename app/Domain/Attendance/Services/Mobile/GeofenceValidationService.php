@@ -7,6 +7,7 @@ namespace App\Domain\Attendance\Services\Mobile;
 use App\Domain\Attendance\Enums\GeofenceStatus;
 use App\Domain\Attendance\ValueObjects\GeofenceValidationResult;
 use App\Models\Company;
+use App\Models\Employee;
 
 class GeofenceValidationService
 {
@@ -24,7 +25,7 @@ class GeofenceValidationService
      */
     private const INVALID_DISTANCE_METERS = 5000;
 
-    public function validate(float $lat, float $lng, Company $company, bool $isMocked = false): GeofenceValidationResult
+    public function validate(float $lat, float $lng, Company $company, bool $isMocked = false, ?Employee $employee = null): GeofenceValidationResult
     {
         if ($isMocked) {
             return new GeofenceValidationResult(
@@ -35,7 +36,15 @@ class GeofenceValidationService
             );
         }
 
-        $locations = $company->locations;
+        // Use employee's assigned locations if set; otherwise fall back to all company locations.
+        if ($employee !== null) {
+            $locations = $employee->locations()->get();
+            if ($locations->isEmpty()) {
+                $locations = $company->locations;
+            }
+        } else {
+            $locations = $company->locations;
+        }
 
         if ($locations->isEmpty()) {
             // No locations configured — record as valid so employees are not blocked.

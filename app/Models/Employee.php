@@ -10,6 +10,7 @@ use App\Domain\Payroll\Models\PayrollRow;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -40,6 +41,11 @@ class Employee extends Model
             'join_date' => 'date',
             'resign_date' => 'date',
         ];
+    }
+
+    public function locations(): BelongsToMany
+    {
+        return $this->belongsToMany(CompanyLocation::class, 'employee_company_location');
     }
 
     public function company(): BelongsTo

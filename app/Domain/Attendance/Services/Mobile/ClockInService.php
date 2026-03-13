@@ -43,6 +43,7 @@ class ClockInService
             $data->longitude,
             $company,
             $data->isMocked,
+            $employee,
         );
 
         // Map geofence status → attendance status.

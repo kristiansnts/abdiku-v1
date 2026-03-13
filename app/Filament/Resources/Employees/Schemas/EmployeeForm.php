@@ -101,6 +101,26 @@ final class EmployeeForm
                     ->native(false)
                     ->helperText('Kosongkan jika masih aktif'),
 
+                Section::make('Lokasi Kerja')
+                    ->description('Tentukan lokasi kantor yang diizinkan untuk karyawan ini. Kosongkan untuk mengizinkan semua lokasi perusahaan.')
+                    ->schema([
+                        Select::make('locations')
+                            ->label('Lokasi yang Diizinkan')
+                            ->relationship(
+                                'locations',
+                                'name',
+                                fn($query, Get $get) => $query->where(
+                                    'company_id',
+                                    $get('company_id') ?? auth()->user()?->company_id
+                                )
+                            )
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->native(false)
+                            ->helperText('Pilih satu atau lebih lokasi. Jika kosong, karyawan dapat absen di semua lokasi perusahaan.'),
+                    ]),
+
                 Section::make('Informasi Legal & Pajak')
                     ->description('Data mandatory untuk perhitungan PPh21 dan BPJS')
                     ->schema([
