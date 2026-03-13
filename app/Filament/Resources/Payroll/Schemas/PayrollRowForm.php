@@ -50,6 +50,45 @@ final class PayrollRowForm
                     ])
                     ->columns(3),
 
+                Section::make('Pajak (PPh21)')
+                    ->schema([
+                        Placeholder::make('tax_amount')
+                            ->label('Jumlah PPh21')
+                            ->content(fn(?PayrollRow $record): string =>
+                                $record ? 'Rp ' . number_format((float)$record->tax_amount, 2, ',', '.') : '-'
+                            ),
+
+                        Placeholder::make('tax_rate')
+                            ->label('Tarif Efektif (TER)')
+                            ->content(function (?PayrollRow $record): string {
+                                if (!$record) return '-';
+                                $breakdown = $record->audit_log['breakdown'] ?? [];
+                                foreach ($breakdown as $item) {
+                                    if (($item['label'] ?? '') === 'Tarif Pajak Efektif') {
+                                        return $item['result'] ?? '-';
+                                    }
+                                }
+                                return '-';
+                            }),
+
+                        Placeholder::make('tax_category')
+                            ->label('Kategori TER')
+                            ->content(function (?PayrollRow $record): string {
+                                if (!$record) return '-';
+                                $breakdown = $record->audit_log['breakdown'] ?? [];
+                                foreach ($breakdown as $item) {
+                                    if (($item['label'] ?? '') === 'Kategori TER PPh21') {
+                                        $category = $item['result'] ?? '-';
+                                        $ptkp = $item['formula'] ?? '';
+                                        return $ptkp ? "Kategori {$category} (PTKP: {$ptkp})" : "Kategori {$category}";
+                                    }
+                                }
+                                return '-';
+                            }),
+                    ])
+                    ->columns(3)
+                    ->collapsible(),
+
                 Section::make('Detail Kompensasi Karyawan')
                     ->schema([
                         Placeholder::make('base_salary')
