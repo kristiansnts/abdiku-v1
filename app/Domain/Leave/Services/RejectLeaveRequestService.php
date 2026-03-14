@@ -7,6 +7,7 @@ namespace App\Domain\Leave\Services;
 use App\Domain\Leave\Enums\LeaveRequestStatus;
 use App\Domain\Leave\Models\LeaveRequest;
 use App\Models\User;
+use App\Notifications\LeaveRequestReviewedNotification;
 
 class RejectLeaveRequestService
 {
@@ -24,12 +25,11 @@ class RejectLeaveRequestService
 
         $request->update([
             'status' => LeaveRequestStatus::REJECTED,
-            'approved_by' => $rejector->id, // Store who rejected
+            'approved_by' => $rejector->id,
             'approved_at' => now(),
             'rejection_reason' => $reason,
         ]);
 
-        // TODO: Send notification to employee
-        // Notification::send($request->employee, new LeaveRequestRejectedNotification($request));
+        $request->employee->user?->notify(new LeaveRequestReviewedNotification($request, false, $rejector));
     }
 }

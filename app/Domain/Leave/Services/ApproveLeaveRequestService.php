@@ -10,6 +10,7 @@ use App\Domain\Leave\Models\LeaveRecord;
 use App\Domain\Leave\Models\LeaveRequest;
 use App\Domain\Leave\Models\Holiday;
 use App\Models\User;
+use App\Notifications\LeaveRequestReviewedNotification;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
 
@@ -79,7 +80,6 @@ class ApproveLeaveRequestService
             }
         });
 
-        // TODO: Send notification to employee
-        // Notification::send($request->employee, new LeaveRequestApprovedNotification($request));
+        $request->employee->user?->notify(new LeaveRequestReviewedNotification($request, true, $approver));
     }
 }

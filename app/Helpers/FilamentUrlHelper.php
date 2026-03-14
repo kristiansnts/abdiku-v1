@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Domain\Attendance\Models\AttendanceRequest;
+use App\Domain\Leave\Models\LeaveRequest;
 use App\Domain\Payroll\Models\OverrideRequest;
 use App\Domain\Payroll\Models\PayrollBatch;
 use App\Domain\Payroll\Models\PayrollPeriod;
@@ -10,6 +11,14 @@ use App\Domain\Payroll\Models\PayrollRow;
 
 class FilamentUrlHelper
 {
+    /**
+     * Generate URL for leave request view page
+     */
+    public static function leaveRequestUrl(LeaveRequest $request): string
+    {
+        return route('filament.admin.resources.leave-requests.view', ['record' => $request->id]);
+    }
+
     /**
      * Generate URL for attendance request view page
      */
