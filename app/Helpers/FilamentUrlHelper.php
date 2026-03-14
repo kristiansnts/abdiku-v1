@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use App\Domain\Attendance\Models\AttendanceRaw;
 use App\Domain\Attendance\Models\AttendanceRequest;
 use App\Domain\Leave\Models\LeaveRequest;
 use App\Domain\Payroll\Models\OverrideRequest;
@@ -17,6 +18,14 @@ class FilamentUrlHelper
     public static function leaveRequestUrl(LeaveRequest $request): string
     {
         return route('filament.admin.resources.leave-requests.view', ['record' => $request->id]);
+    }
+
+    /**
+     * Generate URL for attendance record (raw) view page
+     */
+    public static function attendanceRecordUrl(AttendanceRaw $record): string
+    {
+        return route('filament.admin.resources.attendance-records.view', ['record' => $record->id]);
     }
 
     /**

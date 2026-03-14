@@ -6,6 +6,7 @@ namespace App\Domain\Attendance\Services;
 
 use App\Domain\Attendance\Enums\AttendanceStatus;
 use App\Domain\Attendance\Models\AttendanceRaw;
+use App\Events\AttendanceRecordReviewed;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
@@ -29,5 +30,7 @@ final class RejectAttendanceRecordService
             'employee_id'   => $record->employee_id,
             'reviewed_by'   => $actor->id,
         ]);
+
+        event(new AttendanceRecordReviewed($record, false, $actor));
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Events\AttendanceOverrideRequiresOwner;
+use App\Events\AttendanceRecordReviewed;
 use App\Events\AttendanceRequestReviewed;
 use App\Events\AttendanceRequestSubmitted;
 use App\Events\EmployeeAbsentDetected;
@@ -11,6 +12,7 @@ use App\Events\PayrollPrepared;
 use App\Events\PayslipAvailable;
 use App\Listeners\NotifyAllOfPayrollFinalized;
 use App\Listeners\NotifyEmployeeOfPayslip;
+use App\Listeners\NotifyEmployeeOfAttendanceRecordReview;
 use App\Listeners\NotifyEmployeeOfRequestReview;
 use App\Listeners\NotifyHrOfAbsentEmployee;
 use App\Listeners\NotifyHrOfAttendanceRequest;
@@ -31,6 +33,9 @@ class EventServiceProvider extends ServiceProvider
         ],
         AttendanceRequestReviewed::class => [
             NotifyEmployeeOfRequestReview::class,
+        ],
+        AttendanceRecordReviewed::class => [
+            NotifyEmployeeOfAttendanceRecordReview::class,
         ],
         AttendanceOverrideRequiresOwner::class => [
             NotifyOwnerOfOverrideRequest::class,
