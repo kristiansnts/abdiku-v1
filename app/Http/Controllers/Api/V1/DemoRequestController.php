@@ -71,6 +71,8 @@ class DemoRequestController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal membuat sesi demo. Silakan coba lagi.',
+                '_debug' => $e->getMessage(),
+                '_file' => $e->getFile() . ':' . $e->getLine(),
             ], 500);
         }
     }
