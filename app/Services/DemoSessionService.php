@@ -285,14 +285,18 @@ final class DemoSessionService
             if (!$current->isWeekend()) {
                 foreach ($employees as $emp) {
                     if (rand(1, 100) <= 90) {
-                        AttendanceRaw::create([
-                            'company_id' => $companyId,
-                            'employee_id' => $emp->id,
-                            'date' => $current->toDateString(),
-                            'clock_in' => $current->copy()->setTime(8, rand(0, 30), 0),
-                            'clock_out' => $current->copy()->setTime(17, rand(0, 59), 0),
-                            'source' => AttendanceSource::MACHINE,
-                        ]);
+                        AttendanceRaw::firstOrCreate(
+                            [
+                                'company_id' => $companyId,
+                                'employee_id' => $emp->id,
+                                'date' => $current->toDateString(),
+                            ],
+                            [
+                                'clock_in' => $current->copy()->setTime(8, rand(0, 30), 0),
+                                'clock_out' => $current->copy()->setTime(17, rand(0, 59), 0),
+                                'source' => AttendanceSource::MACHINE,
+                            ]
+                        );
                     }
                 }
             }
