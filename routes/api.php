@@ -39,7 +39,6 @@ Route::prefix('v1')->group(function () {
 
     // Demo request (public — from landing page)
     Route::post('demo/request', DemoRequestController::class)
-        ->middleware('throttle:3,60')
         ->name('api.demo.request');
 
     // Authentication (public)
